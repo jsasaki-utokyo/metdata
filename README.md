@@ -31,7 +31,7 @@ Only local install is supported.
 pip install -e .
 ```
 
-# Extract data by specifying an observatory and period.
+## Extract data by specifying an observatory and period.
 
 ```Python
 from metdata import gwo
@@ -70,18 +70,18 @@ gwo.Plot1D(plot_config, data, window=window,
            center=True).save_plot('data.png', dpi=600)
 ```
 
-#### Class Data1D
+## Class Data1D
 1D scalar (`col_1`) plot or 1D vector `(col_1, col_2)` plot.
 
 Parameters
 ----------
-- df (pandas.DataFrame)
-- col_1 (str) : scalar variable or 1st dimension of vector variable
-- col_2 (str) : 2nd dimension of vector variable
-- xrange: tuple = None
-- yrange: tuple = None
+- `df` (pandas.DataFrame)
+- `col_1` (str) : Scalar variable or 1st dimension of vector variable
+- `col_2` (str) : 2nd dimension of vector variable
+- `xrange` (tuple) : Default = None
+- `yrange` (tuple) : Default = None
 
-#### Class Data1D_PlotConfig
+## Class Data1D_PlotConfig
 Configuration setting for plot parameters
 
 Parameters
@@ -107,7 +107,7 @@ Parameters
 
 ## Class Plot1D
 
-#### Constructor
+### Constructor
 
 ```Python
 Plot1D(plot_config, data, window: int=1, center: bool=True)
@@ -120,7 +120,7 @@ Plot1D(plot_config, data, window: int=1, center: bool=True)
 - `window` (int) : Rolling mean window in odd integer
 - `center` (bool): True: Rolling mean at center
 
-#### Methods
+### Methods
 
 ```Python
 save_vector_plot(filename, magnitude, **kwargs)
