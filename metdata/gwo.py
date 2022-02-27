@@ -17,7 +17,7 @@
 # 1990年以前は3時間データ．全天日射量，日照時間，および降水量は存在しない．
 
 import sys
-#import os
+import os
 import glob
 import numpy as np
 import math
@@ -31,14 +31,52 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from matplotlib.dates import date2num, YearLocator, MonthLocator, DayLocator, DateFormatter
 from pandas.plotting import register_matplotlib_converters
-register_matplotlib_converters()
+#register_matplotlib_converters()
+#get_ipython().run_line_magic('matplotlib', 'inline')
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+class Stn:
+    '''
+    Japan Meteorological Agency ground weather observation stations
+    http://www.roy.hi-ho.ne.jp/ssai/mito_gis/
+    '''
 
+    def __init__(self):
+        ## Gets file path __file__ of this module.
+        _stn_path, _ = os.path.split(os.path.abspath(__file__))
+        self._df = pd.read_csv(f"{_stn_path}/gwo_stn.csv", skiprows=1)
+
+    @property
+    def df(self):
+        return self._df
+
+    def values(self, name):
+        '''
+        Get values
+        
+        Parameters
+        ----------
+        name(str): Station name in the Kname column
+        
+        Return
+        (dict): Dictonary with keys of [name, latitude, longitude, altitude, 
+                                        barometer_height, anemometer_height]
+        '''
+        self.name = name
+        self.latitude = self._df[self._df["Kname"]==self.name]['latitude'].values.item()
+        self.longitude = self._df[self._df["Kname"]==self.name]['longitude'].values.item()
+        self.altitude = self._df[self._df["Kname"]==self.name]['altitude'].values.item()
+        self.barometer_height = self._df[self._df["Kname"]==self.name
+                                        ]['barometer_height'].values.item()
+        self.anemometer_height = self._df[self._df["Kname"]==self.name
+                                         ]['anemometer_height'].values.item()
+        return {"name":self.name, "latitude":self.latitude, "longitude":self.longitude,
+                "altitude":self.altitude, "barometer_height":self.barometer_height,
+                "anemometer_height":self.anemometer_height}
 
 class Met:
     '''
-    気象データベース・地上観測DVD，アメダスDVDの時系列データ抽出
+    Extraction of time series ground weather observation data
+    気象データベース・地上観測DVDの時系列データ抽出
     +--------+------------------------------------------------------------+
     |リマーク|            解                                  説          |
     +--------+------------------------------------------------------------+
@@ -111,6 +149,10 @@ class Met:
            "9":"日の極値の起時が翌日の場合，または１９９０年までの８０型地上気象観測装置からの自動取得値"}
     # These elements are specified as missing values. 欠損値と判断するRMK値
     nan_0_1_RMK = [0, 1, 2]
+
+    wind_direction_jp2num={"北北東":1, "北東":2, "東北東":3, "東":4, "東南東":5, "南東":6,
+                           "南南東":7, "南":8, "南南西":9, "南西":10, "西南西":11,
+                           "西":12, "西北西":13, "北西":14, "北北西":15, "北":16}
 
     def __init__(self, datetime_ini, datetime_end, stn, dirpath):
         '''
@@ -281,7 +323,7 @@ class Hourly(Met):
 
         return self.__df_interp[masked]
 
-    def to_csv(self, df, fo_path='./df.csv'):
+    def to_csv(self, df, fo_path='./df.csv', **kwargs):
         '''
         Export df to a CSV file.
                    
@@ -291,7 +333,7 @@ class Hourly(Met):
         fo_path (str) : CSV file path
         '''
         ## Shift-JIS is used on Windows, thus, UTF-8 should be specified.
-        df.to_csv(fo_path, encoding='utf-8', )
+        df.to_csv(fo_path, encoding='utf-8', **kwargs)
         ## Force conversion of line feed code to Linux LF.
         ## 改行コードをLinuxのLFに強制変換（Linuxとの互換性維持）
         cmd = 'nkf -w -Lu --overwrite ' + fo_path

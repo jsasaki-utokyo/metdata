@@ -3,6 +3,8 @@ This repository contains tools for processing meteorological data, currently sup
 
 （一財）日本気象業務支援センターから販売されていた，1961年から2015年までのアメダスや地上観測データDVDから必要なデータを切り出し，処理するツールです．[ウェザートーイ](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)がサポートしています．
 
+気象庁公開の気象情報は[whp View](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/whpview/index.html)を用いて閲覧可能です．フリー版でなければCSV形式でのダウンロードも可能です．詳細は下端にまとめます．
+
 # GWO dataset
 
 Each file contains meteorological data (see the columns below) from YYYY-01-01 01:00:00 to YYYY-12-31 24:00:00, JST in each year at each observation station. The time at 24:00:00 is converted to 00:00:00 following the Python `datetime` hour range.
@@ -25,7 +27,7 @@ Each file contains meteorological data (see the columns below) from YYYY-01-01 0
 ```
 
 # Install
-Only local install is supported.
+Only local install is supported. Move into the directory of the local repository of *metdata* and execute the following. Do not forget the last period.
 
 ```bash
 pip install -e .
@@ -131,3 +133,36 @@ save_vector_plot(filename, magnitude, **kwargs)
 - `filename` (str) : output file name
 - `magnitude` (bool) : True: plot magnitude of vectors
 - `**kwargs` (dict) : Transferred to `figure.savefig` in matplotlib
+
+
+# whp View を用いた気象庁公開気象データの取得 (in Japanese)
+
+[whp View](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/whpview/index.html)を用いて気象庁公開の気象情報が閲覧できます．フリー版でなければCSVのダウンロードも可能です．1度のダウンロードは1測点1年間程度とする必要があります（読み飛ばしエラーが起こりやすい）．．
+気象情報は **地上観測** と **アメダス**，および **高層** の3種類があります．
+
+### 雲量の注意
+雲量に `0+` といった表現があります．これを含め，値欄の記号の情報は [気象庁web] (https://www.data.jma.go.jp/obd/stats/data/mdrr/man/remark.html)にあります．また，雲量は時別値でも3時間間隔のデータとなっており，欠損値の扱いが要注意です．
+
+## 地上観測
+時別，日別，１０分が存在します．
+
+### 地上観測時別
+地上観測タブで **観測所** を選択，期間を指定し，ラジオボタンから **時別** を選択，デフォルトの主要素（詳細１，詳細２でもよい）が選択された状態で，**取得** ボタンをクリックします．**左下に進捗バーが現れ，完了するまで待ちます**．取得が完了したら，**ファイルメニュー** の **表示テーブル保存** をクリックし，CSVファイルとして保存します．テキストファイル形式は Shift-JISのCRLFです．
+
+### 地上観測日別
+時別と同様ですが，ラジオボタンから **日別** を選び，ラジオボタンの **主要素**，**詳細１**，**詳細２** を切り替えて選択します（それぞれ表示される気象要素が異なります）．
+
+### 地上観測１０分
+ラジオボタンから **１０分** を選択，デフォルトの主要素が選択された状態で，**取得** ボタンをクリックします．
+
+## アメダス
+時別，日別，１０分が存在します．
+
+### アメダス時別
+**アメダスタブ** で **観測所** を選択し，**期間** を指定します．ラジオボタンで **時別** を選択し，デフォルトの主要素が選択された状態で，**取得** ボタンをクリックします．
+
+### アメダス日別
+**アメダスタブ** で **観測所** を選択し，**期間** を指定します．ラジオボタンの **日別** を選択し，**主要素**，**詳細１**，**詳細2** を切り替えて選択し，**取得** ボタンをクリックします．
+
+### アメダス１０分
+**アメダスタブ** で **観測所** を選択し，**期間** を指定します．ラジオボタンの **１０分** を選択し，デフォルトの主要素が選択された状態で，**取得** ボタンをクリックします．
