@@ -1,11 +1,17 @@
 # metdata
 This repository contains tools for processing meteorological data, currently supporting the GWO (Ground Weather Observation) dataset provided by the Japan Meteorological Business Support Center ([JMBSC](http://www.jmbsc.or.jp/en/index-e.html)). The dataset was a commercial product in Japanese (see [web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/) for details).
+GWO dataset preprocesssing is required using [GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD), which creates yearly CSV file at each station. 
 
-（一財）日本気象業務支援センターから販売されていた，1961年から2015年までのアメダスや地上観測データDVDから必要なデータを切り出し，処理するツールです．[ウェザートーイ](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)がサポートしています．
+このリポジトリでは（一財）日本気象業務支援センター([JMBSC](http://www.jmbsc.or.jp/en/index-e.html))が提供するGWO(地上気象観測)データセットを処理するツールを提供しています．詳細は[web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)および[ブログ記事](https://estuarine.jp/2016/05/gwo/)を参照ください．
+GWOデータセットは[GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD)を用いて，各観測点における年別のCSVファイルに変換しておく前処理が必要です．
+
+（一財）日本気象業務支援センターから販売されていた，1961年から2015年までのアメダス（AMD）や地上観測データ（GWO）は，購入者限定で[ウェザートーイ](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)がサポートしています．
 
 気象庁公開の気象情報は[whp View](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/whpview/index.html)を用いて閲覧可能です．フリー版でなければCSV形式でのダウンロードも可能です．詳細は下端にまとめます．
 
-# GWO dataset
+データーの2次利用には「気象庁提供」の明示が必要です．
+
+## GWO dataset
 
 Each file contains meteorological data (see the columns below) from YYYY-01-01 01:00:00 to YYYY-12-31 24:00:00, JST in each year at each observation station. The time at 24:00:00 is converted to 00:00:00 following the Python `datetime` hour range.
 
@@ -26,14 +32,14 @@ Each file contains meteorological data (see the columns below) from YYYY-01-01 0
  "降水量(0.1mm/h)","ID14"]
 ```
 
-# Install
-Only local install is supported. Move into the directory of the local repository of *metdata* and execute the following. Do not forget the last period.
+## Install
+Minimum pre-installed packages are `numpy pandas matplotlib jupyterlab`. Only local installation is supported. Move into the directory of the local repository of **metdata** and execute the following. Do not forget the last dot.
 
 ```bash
 pip install -e .
 ```
 
-## Extract data by specifying an observatory and period.
+### Extract data by specifying an observatory and period.
 
 ```Python
 from metdata import gwo
@@ -41,14 +47,14 @@ from metdata import gwo
 datetime_ini = "2019-12-1 00:00:00"
 datetime_end = "2020-12-30 00:00:00"
 stn = "Chiba"
-dirpath = "d:/dat/met/JMA_DataBase/GWO/Hourly/"
+dirpath = "/mnt/d/dat/met/JMA_DataBase/GWO/Hourly/"
 
 met = gwo.Hourly(datetime_ini=datetime_ini, datetime_end=datetime_end, stn=stn, dirpath=dirpath)
 met.df  # pandas.DataFrame
 ```
 
 
-# Plot
+## Plotting
 
 ```Python
 ## Specify pandas.DataFrame and set an item to be plotted.
@@ -72,7 +78,7 @@ gwo.Plot1D(plot_config, data, window=window,
            center=True).save_plot('data.png', dpi=600)
 ```
 
-## Class Data1D
+### Class Data1D
 1D scalar (`col_1`) plot or 1D vector `(col_1, col_2)` plot.
 
 Parameters
@@ -83,7 +89,7 @@ Parameters
 - `xrange` (tuple) : Default = None
 - `yrange` (tuple) : Default = None
 
-## Class Data1D_PlotConfig
+### Class Data1D_PlotConfig
 Configuration setting for plot parameters
 
 Parameters
@@ -107,9 +113,9 @@ Parameters
 - `format_xdata`
 - `format_ydata`
 
-## Class Plot1D
+### Class Plot1D
 
-### Constructor
+#### Constructor
 
 ```Python
 Plot1D(plot_config, data, window: int=1, center: bool=True)
@@ -122,7 +128,7 @@ Plot1D(plot_config, data, window: int=1, center: bool=True)
 - `window` (int) : Rolling mean window in odd integer
 - `center` (bool): True: Rolling mean at center
 
-### Methods
+#### Methods
 
 ```Python
 save_vector_plot(filename, magnitude, **kwargs)
@@ -135,34 +141,34 @@ save_vector_plot(filename, magnitude, **kwargs)
 - `**kwargs` (dict) : Transferred to `figure.savefig` in matplotlib
 
 
-# whp View を用いた気象庁公開気象データの取得 (in Japanese)
+## whp View を用いた気象庁公開気象データの取得 (in Japanese)
 
 [whp View](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/whpview/index.html)を用いて気象庁公開の気象情報が閲覧できます．フリー版でなければCSVのダウンロードも可能です．1度のダウンロードは1測点1年間程度とする必要があります（読み飛ばしエラーが起こりやすい）．．
 気象情報は **地上観測** と **アメダス**，および **高層** の3種類があります．
 
-### 雲量の注意
-雲量に `0+` といった表現があります．これを含め，値欄の記号の情報は [気象庁web] (https://www.data.jma.go.jp/obd/stats/data/mdrr/man/remark.html)にあります．また，雲量は時別値でも3時間間隔のデータとなっており，欠損値の扱いが要注意です．
+#### 雲量の注意
+雲量に `0+` といった表記があります．これを含め，値欄の記号の情報は [気象庁web](https://www.data.jma.go.jp/obd/stats/data/mdrr/man/remark.html)にあります．また，雲量は時別値でも3時間間隔のデータとなっており，欠損値の扱いが要注意です．
 
-## 地上観測
-時別，日別，１０分が存在します．
+### 地上観測
+時別値，日別値，１０分値が存在します．
 
-### 地上観測時別
+#### 地上観測時別
 地上観測タブで **観測所** を選択，期間を指定し，ラジオボタンから **時別** を選択，デフォルトの主要素（詳細１，詳細２でもよい）が選択された状態で，**取得** ボタンをクリックします．**左下に進捗バーが現れ，完了するまで待ちます**．取得が完了したら，**ファイルメニュー** の **表示テーブル保存** をクリックし，CSVファイルとして保存します．テキストファイル形式は Shift-JISのCRLFです．
 
-### 地上観測日別
+#### 地上観測日別
 時別と同様ですが，ラジオボタンから **日別** を選び，ラジオボタンの **主要素**，**詳細１**，**詳細２** を切り替えて選択します（それぞれ表示される気象要素が異なります）．
 
-### 地上観測１０分
+#### 地上観測１０分
 ラジオボタンから **１０分** を選択，デフォルトの主要素が選択された状態で，**取得** ボタンをクリックします．
 
-## アメダス
+### アメダス
 時別，日別，１０分が存在します．
 
-### アメダス時別
+#### アメダス時別
 **アメダスタブ** で **観測所** を選択し，**期間** を指定します．ラジオボタンで **時別** を選択し，デフォルトの主要素が選択された状態で，**取得** ボタンをクリックします．
 
-### アメダス日別
+#### アメダス日別
 **アメダスタブ** で **観測所** を選択し，**期間** を指定します．ラジオボタンの **日別** を選択し，**主要素**，**詳細１**，**詳細2** を切り替えて選択し，**取得** ボタンをクリックします．
 
-### アメダス１０分
+#### アメダス１０分
 **アメダスタブ** で **観測所** を選択し，**期間** を指定します．ラジオボタンの **１０分** を選択し，デフォルトの主要素が選択された状態で，**取得** ボタンをクリックします．

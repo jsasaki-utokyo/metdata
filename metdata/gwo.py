@@ -336,7 +336,7 @@ class Hourly(Met):
         df.to_csv(fo_path, encoding='utf-8', **kwargs)
         ## Force conversion of line feed code to Linux LF.
         ## 改行コードをLinuxのLFに強制変換（Linuxとの互換性維持）
-        cmd = 'nkf -w -Lu --overwrite ' + fo_path
+        cmd = ['nkf', '-w', '-Lu', '--overwrite', fo_path]
         subprocess.call(cmd)
 
     def read_csv(self, fi_path, **kwargs):
@@ -558,6 +558,7 @@ class Hourly(Met):
         df['stem']=df['stem']/1.0e1  # [0.1hPa] -> [hPa]  蒸気圧  vapor pressure
         df['rhum']=df['rhum']/1.0e2  # [%] -> [0-1]  相対湿度  relative humidity
         ## Wind direction [0-16] -> [deg]  0=N/A, 1=NNE, .., 8=S, .., 16=N
+        #print(df['muki'])
         df['muki']=-90.0 - df['muki'] * 22.5
         ## Wind direction [0-360]: Anticolockwise angle with respect to x (W-E) axis.
         df['muki']=df['muki'] % 360.0
@@ -753,7 +754,7 @@ class Daily(Hourly):
         df.to_csv(fo_path, encoding='utf-8', )
         ## Force conversion of line feed code to Linux LF.
         ## 改行コードをLinuxのLFに強制変換（Linuxとの互換性維持）
-        cmd = 'nkf -w -Lu --overwrite ' + fo_path
+        cmd = ['nkf', '-w', '-Lu', '--overwrite', fo_path]
         subprocess.call(cmd)
 
     ## debug Class Met と同一のmethodなら削除する
