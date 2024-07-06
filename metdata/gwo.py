@@ -482,12 +482,12 @@ class Hourly(Met):
         if year < 1991:  # 3-hour intervals from 03 am to 00 am, Not 03 to 24
             datetime_ini = f"{year}-01-01 03:00:00"
             datetime_end = f"{year+1}-01-01 00:00:00"
-            complete_index = pd.date_range(datetime_ini, datetime_end, freq='3H')    
+            complete_index = pd.date_range(datetime_ini, datetime_end, freq='3h')    
         else:            # One-hour intervals from 01 am to 00 am, Not 01 to 24
             #datetime_ini = "{}-01-01 01:00:00".format(year)
             datetime_ini = f"{year}-01-01 01:00:00"
             datetime_end = f"{year+1}-01-01 00:00:00"
-            complete_index = pd.date_range(datetime_ini, datetime_end, freq='H')
+            complete_index = pd.date_range(datetime_ini, datetime_end, freq='h')
 
         ## https://numpy.org/doc/stable/reference/generated/numpy.logical_not.html 
         masked = np.logical_not(np.isin(complete_index, df.index))
@@ -595,7 +595,7 @@ class Hourly(Met):
         ## Create a 1-hour interval index.
         ## 1990年以前の3時間間隔を1時間間隔にする
         ## 1時間間隔のインデックスを作る
-        new_index = pd.date_range(self.datetime_ini, self.datetime_end, freq='1H')
+        new_index = pd.date_range(self.datetime_ini, self.datetime_end, freq='1h')
         ## List of column names to apply ffill to
         ## ffillを適用するカラム名のリスト
         cols_ffill=['KanID', 'Kname', 'KanID_1', 'lhpaRMK', 'shpaRMK', 'kionRMK',
@@ -616,7 +616,7 @@ class Hourly(Met):
         ## Put the result into df_ffill.
         ## 1時間間隔のインデックスを適用し，ffillを適用すべきカラムを対象に補完実行
         ## 結果をdf_ffillに入れる
-        df_ffill = df_interp.reindex(new_index).loc[:, cols_ffill].fillna(method='ffill')
+        df_ffill = df_interp.reindex(new_index).loc[:, cols_ffill].ffill()
 
         ## Apply indexes at one-hour intervals and perform interpolation for columns
         ## that should be interpolated in time.

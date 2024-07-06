@@ -1,15 +1,12 @@
 # metdata
-This repository contains tools for processing meteorological data, currently supporting the GWO (Ground Weather Observation) dataset provided by the Japan Meteorological Business Support Center ([JMBSC](http://www.jmbsc.or.jp/en/index-e.html)). The dataset was a commercial product in Japanese (see [web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/) for details).
-GWO dataset preprocesssing is required using [GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD), which creates yearly CSV file at each station. 
-
-このリポジトリでは（一財）日本気象業務支援センター([JMBSC](http://www.jmbsc.or.jp/en/index-e.html))が提供するGWO(地上気象観測)データセットを処理するツールを提供しています．詳細は[web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)および[ブログ記事](https://estuarine.jp/2016/05/gwo/)を参照ください．
-GWOデータセットは[GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD)を用いて，各観測点における年別のCSVファイルに変換しておく前処理が必要です．
-
-（一財）日本気象業務支援センターから販売されていた，1961年から2015年までのアメダス（AMD）や地上観測データ（GWO）は，購入者限定で[ウェザートーイ](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)がサポートしています．
-
-気象庁公開の気象情報は[whp View](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/whpview/index.html)を用いて閲覧可能です．フリー版でなければCSV形式でのダウンロードも可能です．詳細は下端にまとめます．
-
-データーの2次利用には「気象庁提供」の明示が必要です．
+- This repository contains tools for processing meteorological data, currently supporting the GWO (Ground Weather Observation) dataset provided by the Japan Meteorological Business Support Center ([JMBSC](http://www.jmbsc.or.jp/en/index-e.html)). The dataset was a commercial product in Japanese (see [web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/) for details).
+- GWO dataset preprocesssing is required using [GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD), which creates yearly CSV file at each station. 
+- このリポジトリでは（一財）日本気象業務支援センター([JMBSC](http://www.jmbsc.or.jp/en/index-e.html))が提供する，2021年までのGWO(地上気象観測)データセットを処理するツールを提供しています．詳細は[web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)および[ブログ記事](https://estuarine.jp/2016/05/gwo/)を参照ください．
+この2021年までのGWOデータセットは[GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD)を用いて，各観測点における年別のCSVファイルに変換しておく前処理が必要です．
+- （一財）日本気象業務支援センターから販売されていた，1961年から2015年までのアメダス（AMD）や地上観測データ（GWO）は，購入者限定で[ウェザートーイ](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)が2021年のデータまでサポートしています．2022年以降は気象庁互換形式のみ提供されています．
+- 気象庁公開の気象情報は[whp View](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/whpview/index.html)を用いて閲覧可能です．フリー版でなければCSV形式でのダウンロードも可能です．詳細は下端にまとめます．しかし，2024年7月現在，このダウンロードはできなくなったようです．上記データセット購入者は引き続き，気象庁互換形式のデータをサポートwebからダウンロード可能です．
+- **気象庁互換形式**の値欄には記号が含まれる場合があります．[**値欄の詳細**](https://www.data.jma.go.jp/obd/stats/data/mdrr/man/remark.html)です．
+- データーの2次利用には「気象庁提供」の明示が必要です．
 
 ## GWO dataset
 
