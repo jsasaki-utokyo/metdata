@@ -579,6 +579,7 @@ class Hourly(Met):
         df['lght']=df['lght']/1.0e1  # [0.1h] -> [h]  日照時間  daylight hours
         ## Global horizontal irradiance [0.01MJ/m2/h] -> [J/m2/s] = [W/m2]  短波放射
         df['slht']=df['slht']*1.0e4/3.6e3
+        df['kous']=df['kous']/(1.0e3 * 3.6e3*10)  # [0.1mm/h] -> [m/s]
         ## wind vector (u,v)
         rad = df["muki"].values * 2 * np.pi / 360.0
         rad = rad.astype(float) # This requires for np.cos(rad)
@@ -1077,3 +1078,39 @@ class Plot1D:
         if magnitude:
             fill_between = self.make_fill_between(axes)
         self.figure.savefig(filename, **kwargs)
+
+# Functions for exporting data
+
+def export_gotm(file, df, var, fmt=None):
+    '''
+    Export DataFrame df to a GOTM input file.
+
+    Parameters
+    ----------
+    file (str) : GOTM input file path
+    df (pandas.DataFrame) : DataFrame to be exported
+    var (str) : Variable name to be exported
+    fmt (str) : Format string for the variable (default: None)
+    '''
+    if fmt is None:
+        fmt = ""
+    with open(file, "w") as f:
+        for idx, row in df.iterrows():
+            # フォーマット文字列を適用（fmt が空の場合はそのまま出力）
+            formatted_value = format(row[var], fmt)  # fmt="" の場合、デフォルト動作
+            f.write(f"{idx} {formatted_value}\n")
+
+def export_gotm_meteo(file, df):
+    '''
+    Export specific common meteorological variables in DataFrame df to a GOTM meteo input file.
+
+    Parameters
+    ----------
+    file (str) : meteo input file path
+    df (pandas.DataFrame) : DataFrame to be exported
+    '''
+    with open(file, "w") as f:
+        for idx, row in df[["u", "v", "shpa", "kion", "humd", "clod"]].iterrows():
+            # 指定されたフォーマットを適用
+            formatted_row = f"{idx} {row['u']:10.5f} {row['v']:10.5f} {row['shpa']:12.5f} {row['kion']:10.5f} {row['humd']:10.5f} {row['clod']:10.5f}\n"
+            f.write(formatted_row)
