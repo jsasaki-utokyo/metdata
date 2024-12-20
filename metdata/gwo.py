@@ -193,7 +193,8 @@ class Met:
         for rmk_col in rmk_cols:
             for rmk_nan in rmk_nans:
                 idx = df.columns.get_loc(rmk_col) - 1  ## RMKに対応する値の列インデックス
-                df.iloc[:, idx].mask(df[rmk_col] == rmk_nan, np.nan, inplace=True)
+                # df.iloc[:, idx].mask(df[rmk_col] == rmk_nan, np.nan, inplace=True)
+                df.iloc[:, idx] = df.iloc[:, idx].mask(df[rmk_col] == rmk_nan, np.nan)
         return df
 
 
@@ -401,6 +402,11 @@ class Hourly(Met):
         ## List of a datetime index for each year for missing rows
         tsi_masked = []
         
+        # Specific treatment for end = 'YYYY-01-01 00:00:00'
+        #dt = datetime.datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
+        if end.month == 1 and end.day == 1 and end.hour == 0 and end.minute == 0 and end.second == 0:
+            Ye = Ye - 1
+        
         fyears = list(range(Ys, Ye+1))  # from Ys to Ye
 
         ## Reading GWO csv files and creating DataFrame considering missing values
@@ -420,7 +426,11 @@ class Hourly(Met):
             file = "{}{}{}.csv".format(fdir, self.stn, str(year))
             print(f"Reading from {file}")
             
-            df_tmp = pd.read_csv(file, header = None, names = self.names, parse_dates=[[3,4,5]])
+            df_tmp = pd.read_csv(file, header = None, names = self.names)
+            #print(df_tmp.head())  # データの先頭を表示
+            #print(df_tmp.columns) # 
+            #print(df_tmp[[3,4,5]])
+            df_tmp['YYYY_MM_DD'] = pd.to_datetime(df_tmp.iloc[:,[3, 4, 5]].astype(str).agg('-'.join, axis=1))
             ## YYYY-MM-DD and HH (hour) columns are combined into a datetime index.
             df_tmp.index = [x + y * Hour() for x,y in zip(df_tmp['YYYY_MM_DD'],df_tmp['HH'])]
             df_tmp.drop("YYYY_MM_DD", axis=1, inplace=True)
@@ -537,7 +547,8 @@ class Hourly(Met):
             idx = df.columns.get_loc(key) - 1  
             ## In a column, set the row that matches the list element to True.
             ## カラムにおいて，リストの要素にマッチした行をTrueにする
-            df.iloc[:,idx].mask(df[key].isin(self.na_values[key]), inplace=True)
+            #df.iloc[:,idx].mask(df[key].isin(self.na_values[key]), inplace=True)
+            df.iloc[:, idx] = df.iloc[:, idx].mask(df[key].isin(self.na_values[key]))
         return df
 
     def _unit_conversion(self, df):
@@ -570,9 +581,12 @@ class Hourly(Met):
         df['slht']=df['slht']*1.0e4/3.6e3
         ## wind vector (u,v)
         rad = df["muki"].values * 2 * np.pi / 360.0
+        rad = rad.astype(float) # This requires for np.cos(rad)
         (u, v) = df["sped"].values * (np.cos(rad), np.sin(rad))
+
         df["u"] = u
         df["v"] = v
+
         return df
 
     def _df_interp(self, df):
@@ -589,6 +603,12 @@ class Hourly(Met):
         '''
         ## Create df_interp with interpolated missing values
         ## 欠損値を内挿したdf_interpを作る
+        df = df.infer_objects(copy=False)
+        for col in df.select_dtypes(include='object').columns:
+            try:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+            except Exception as e:
+                print(f"Error converting column {col}: {e}")
         df_interp = df.interpolate(method='time').copy()
 
         ## Resample 3-hour intervals before 1990 to 1-hour intervals.
@@ -623,6 +643,7 @@ class Hourly(Met):
         ## Put the result into df_interp_1H.
         ## 1時間間隔のインデックスを適用し，時間内挿すべきカラムを対象に内挿実行
         ## 結果をdf_interp_1Hに入れる
+        df_interp = df_interp.infer_objects(copy=False)
         df_interp_1H = df_interp.reindex(new_index).loc[:, cols_interp].interpolate(
             method='time').copy()
         ### df_ffillとdf_interpを連結し，カラムの順序をdf1と同じとしたデータフレームdfを作る
@@ -851,6 +872,7 @@ class Daily(Hourly):
             sys.exit()
 
         tsa = []  ### RMKの欠損値を考慮しない，オリジナルと同一
+
         fyears = list(range(Ys, Ye+1)) # from Ys to Ye
 
         for year in fyears:
