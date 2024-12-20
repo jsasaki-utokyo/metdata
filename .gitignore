@@ -130,3 +130,5 @@ dmypy.json
 
 metdata.egg-info/
 
+examples/*.dat
+examples/*.png
