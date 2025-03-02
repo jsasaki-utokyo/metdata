@@ -5,7 +5,7 @@
 import sys
 from metdata import gwo
 
-def read_gwo(ymd_ini, ymd_end, stn, dirpath="/mnt/d/dat/met/JMA_DataBase/GWO/Hourly/"):
+def read_gwo(ymd_ini, ymd_end, stn, dirpath="/mnt/c/dat/met/JMA_DataBase/GWO/Hourly/"):
     '''
     Read GWO data
 
@@ -25,7 +25,7 @@ def read_gwo(ymd_ini, ymd_end, stn, dirpath="/mnt/d/dat/met/JMA_DataBase/GWO/Hou
     return gwo.Hourly(datetime_ini=datetime_ini, datetime_end=datetime_end, stn=stn,
                           dirpath=dirpath)
 
-def export_gotm(ymd_ini, ymd_end, stns, dirpath="/mnt/d/dat/met/JMA_DataBase/GWO/Hourly/"):
+def export_gotm(ymd_ini, ymd_end, stns, dirpath="/mnt/c/dat/met/JMA_DataBase/GWO/Hourly/"):
     '''
     Export GWO data to GOTM format input files
 
@@ -56,9 +56,9 @@ def export_gotm(ymd_ini, ymd_end, stns, dirpath="/mnt/d/dat/met/JMA_DataBase/GWO
         gwo.export_gotm_meteo(file, gwo_data.df)
 
 if __name__ == "__main__":
-    dirpath = "/mnt/d/dat/met/JMA_DataBase/GWO/Hourly/"
-    ymd_ini = "2020-01-01"
-    ymd_end = "2021-01-01"
+    dirpath = "/mnt/c/dat/met/JMA_DataBase/GWO/Hourly/"
+    ymd_ini = "2016-01-01"
+    ymd_end = "2017-01-01"
     stns = ['Tokyo', 'Chiba', 'Yokohama']
 
     export_gotm(ymd_ini, ymd_end, stns, dirpath=dirpath)
