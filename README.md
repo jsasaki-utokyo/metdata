@@ -1,8 +1,35 @@
 # metdata
 
-This repository contains tools for processing meteorological data, currently supporting the GWO (Ground Weather Observation) dataset provided by the Japan Meteorological Business Support Center ([JMBSC](http://www.jmbsc.or.jp/en/index-e.html)). The dataset was a commercial product in Japanese (see [web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/) for details).
+This repository contains tools for processing meteorological data, currently supporting the GWO (Ground Weather Observation) dataset format originally provided by the Japan Meteorological Business Support Center ([JMBSC](http://www.jmbsc.or.jp/en/index-e.html)).
 
-GWO dataset preprocesssing is required using [GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD), which creates yearly CSV file at each station.
+**Note:** The original GWO dataset was a commercial product available until 2021 (see [web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/) for details). For data from 2022 onwards, use the [GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD) tool to download and convert JMA's publicly available CSV data into GWO format.
+
+## Data Preparation
+
+### For 2022 and Later (Current JMA Data)
+
+1. Download JMA CSV data and convert to GWO format using [GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD):
+   ```bash
+   # Install GWO-AMD
+   git clone https://github.com/jsasaki-utokyo/GWO-AMD.git
+   cd GWO-AMD
+   conda env create -f environment.yml
+   conda activate gwo-amd
+
+   # Download and convert JMA data to GWO format
+   jma-download --year 2023 --station Tokyo --gwo-format
+   ```
+
+2. Copy the converted GWO CSV files to your data directory:
+   ```bash
+   cp -r ./output/* $DATA_DIR/met/JMA_DataBase/GWO/Hourly/
+   ```
+
+3. Use metdata to process the GWO format files (same workflow as legacy data)
+
+### For 2021 and Earlier (Legacy GWO Data)
+
+If you have the commercial GWO dataset, preprocess it using [GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD) to create yearly CSV files at each station.
 
 ## GWO dataset
 
