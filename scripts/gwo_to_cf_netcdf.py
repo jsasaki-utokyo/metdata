@@ -15,15 +15,24 @@ from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from netCDF4 import Dataset, date2num
+from netCDF4 import Dataset, date2num, default_fillvals
+from pvlib import solarposition
 
 from metdata import gwo
 
 LOG = logging.getLogger("gwo_to_cf")
-FILL_VALUE = np.float32(-9999.0)
+FILL_VALUE = np.float32(default_fillvals["f4"])
 UTC_UNITS = "seconds since 1970-01-01 00:00:00 UTC"
 CALENDAR = "gregorian"
-RMK_MISSING_CODES = {"0", "1", "2", 0, 1, 2}
+RMK_RULES = {
+    "default": {"missing": {"0", "1", 0, 1}, "rmk2_zero": False},
+    "clod": {"missing": {"0", "1", "2", 0, 1, 2}, "rmk2_zero": False},
+    "muki": {"missing": {"0", "1", "2", 0, 1, 2}, "rmk2_zero": False},
+    "sped": {"missing": {"0", "1", "2", 0, 1, 2}, "rmk2_zero": False},
+    "lght": {"missing": {"0", "1", 0, 1}, "rmk2_zero": True},
+    "slht": {"missing": {"0", "1", 0, 1}, "rmk2_zero": True},
+    "kous": {"missing": {"0", "1", 0, 1}, "rmk2_zero": True},
+}
 RMK_MAP = {
     "lhpa": "lhpaRMK",
     "shpa": "shpaRMK",
@@ -142,13 +151,28 @@ def load_raw_dataframe(
 
 
 def _mask_rmk_values(df: pd.DataFrame) -> pd.DataFrame:
-    """Force RMK=0/1/2 samples to NaN for every meteorological variable."""
+    """Apply RMK-specific masking and zero-filling rules to the raw dataframe."""
     masked = df.copy()
     for value_col, rmk_col in RMK_MAP.items():
         if value_col not in masked.columns or rmk_col not in masked.columns:
             continue
-        mask = masked[rmk_col].isin(RMK_MISSING_CODES)
-        masked.loc[mask, value_col] = np.nan
+        rules = RMK_RULES.get(value_col, RMK_RULES["default"])
+        rmk_series = masked[rmk_col]
+        missing_mask = rmk_series.isin(rules["missing"])
+        masked.loc[missing_mask, value_col] = np.nan
+        if rules.get("rmk2_zero"):
+            zero_mask = rmk_series.isin({"2", 2})
+            masked.loc[zero_mask, value_col] = 0.0
+
+    # Wind-specific rule: if direction is unobserved (RMK=2), treat speed as missing too.
+    if (
+        "muki" in masked.columns
+        and "mukiRMK" in masked.columns
+        and "sped" in masked.columns
+    ):
+        dir_mask = masked["mukiRMK"].isin({"2", 2})
+        if dir_mask.any():
+            masked.loc[dir_mask, ["muki", "sped"]] = np.nan
     return masked
 
 
@@ -313,16 +337,58 @@ def convert_to_cf(df: pd.DataFrame) -> pd.DataFrame:
 
     # Derive wind components when direction and speed exist.
     if {"wind_from_direction", "wind_speed"}.issubset(cf_df.columns):
-        direction = np.deg2rad(cf_df["wind_from_direction"].to_numpy(dtype=float))
-        speed = cf_df["wind_speed"].to_numpy(dtype=float)
-        mask = np.isnan(direction) | np.isnan(speed)
-        eastward = np.full_like(speed, np.nan)
-        northward = np.full_like(speed, np.nan)
-        valid = ~mask
-        eastward[valid] = -speed[valid] * np.sin(direction[valid])
-        northward[valid] = -speed[valid] * np.cos(direction[valid])
-        cf_df["eastward_wind"] = eastward
-        cf_df["northward_wind"] = northward
+        direction_deg = cf_df["wind_from_direction"].to_numpy(dtype=np.float64)
+        speed = cf_df["wind_speed"].to_numpy(dtype=np.float64)
+        eastward = np.full_like(speed, np.nan, dtype=np.float64)
+        northward = np.full_like(speed, np.nan, dtype=np.float64)
+
+        valid = np.isfinite(direction_deg) & np.isfinite(speed)
+        if valid.any():
+            direction_rad = np.deg2rad(direction_deg[valid])
+            eastward[valid] = -speed[valid] * np.sin(direction_rad)
+            northward[valid] = -speed[valid] * np.cos(direction_rad)
+
+        calm_mask = (
+            np.isnan(direction_deg)
+            & np.isfinite(speed)
+            & (np.abs(speed) <= 1e-6)
+        )
+        if calm_mask.any():
+            eastward[calm_mask] = 0.0
+            northward[calm_mask] = 0.0
+
+        cf_df["eastward_wind"] = eastward.astype(np.float32)
+        cf_df["northward_wind"] = northward.astype(np.float32)
+    return cf_df.astype(np.float32)
+
+
+def enforce_nighttime_zero(
+    cf_df: pd.DataFrame,
+    original_index: pd.Index,
+    latitude: float,
+    longitude: float,
+    timezone: str = "Asia/Tokyo",
+) -> pd.DataFrame:
+    target_cols = [
+        "duration_of_sunshine",
+        "surface_downwelling_shortwave_flux_in_air",
+    ]
+    present = [col for col in target_cols if col in cf_df.columns]
+    if not present or cf_df.empty:
+        return cf_df
+
+    dt_index = pd.DatetimeIndex(original_index)
+    if dt_index.tz is None:
+        dt_index = dt_index.tz_localize(timezone)
+    else:
+        dt_index = dt_index.tz_convert(timezone)
+    solpos = solarposition.get_solarposition(dt_index, latitude, longitude)
+    night_mask = pd.Series(
+        (solpos["apparent_elevation"].to_numpy() <= 0),
+        index=cf_df.index,
+    )
+    if night_mask.any():
+        cf_df.loc[night_mask, present] = 0.0
     return cf_df
 
 
@@ -387,6 +453,11 @@ def write_netcdf(
         alt_var.standard_name = "altitude"
         alt_var.units = "m"
 
+        def to_masked(series: pd.Series) -> np.ma.MaskedArray:
+            arr = series.to_numpy(dtype=np.float32, copy=True)
+            mask = ~np.isfinite(arr)
+            return np.ma.masked_array(arr, mask=mask)
+
         for name in cf_df.columns:
             meta = CF_VARIABLES.get(name)
             attrs: Dict[str, str] = {}
@@ -404,9 +475,10 @@ def write_netcdf(
                     "units": "m s-1",
                 }
             var = nc.createVariable(name, "f4", ("time",), fill_value=FILL_VALUE)
-            var[:] = np.ma.masked_invalid(cf_df[name].to_numpy(dtype=np.float32))
+            var[:] = to_masked(cf_df[name])
             for key, value in attrs.items():
                 setattr(var, key, value)
+            var.missing_value = FILL_VALUE
             var.coordinates = "latitude longitude"
 
         nc.Conventions = "CF-1.10"
@@ -438,15 +510,22 @@ def main() -> None:
     if output.exists() and not args.overwrite:
         raise FileExistsError(f"{output} exists. Use --overwrite to replace.")
 
+    station_meta = fetch_station_metadata(args.station)
+
     LOG.info("Loading GWO data for %s from %s", args.station, hourly_dir)
     df = load_raw_dataframe(args.station, args.start, args.end, hourly_dir)
     cf_df = convert_to_cf(df)
+    cf_df = enforce_nighttime_zero(
+        cf_df,
+        df.index,
+        latitude=station_meta["latitude"],
+        longitude=station_meta["longitude"],
+    )
     summaries = summarize_missing(cf_df)
     LOG.info("Missing values per variable:")
     for name, missing, pct in summaries:
         LOG.info("  %-45s %5d (%.2f%%)", name, missing, pct)
 
-    station_meta = fetch_station_metadata(args.station)
     LOG.info("Writing NetCDF to %s", output)
     write_netcdf(
         output_path=output,

@@ -129,6 +129,11 @@ The script expects hourly CSVs under `$DATA_DIR/met/JMA_DataBase/GWO/Hourly/` (o
 
 Note: Calm conditions (`muki=0`) are exported with `wind_from_direction = NaN` because the CF convention treats direction as undefined when speed is zero; `wind_speed` still reports the measured magnitude.
 
+Calm hours also force `eastward_wind`/`northward_wind` to `0` so vector components remain consistent with the zero speed.
+
+Nighttime samples automatically set `duration_of_sunshine`, `surface_downwelling_shortwave_flux_in_air`, and other “no phenomenon” indicators (e.g., dry hours for `precipitation_flux`) to `0`, so remaining missing values truly reflect gaps in the underlying data.
+Wind direction RMK=2 (no observation) now forces both `wind_from_direction` and `wind_speed` to `_FillValue`, preventing mismatches between direction and speed availability.
+
 To inspect missing samples inside a generated file, run:
 
 ```bash
