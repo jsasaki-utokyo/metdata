@@ -1,12 +1,8 @@
 # metdata
-- This repository contains tools for processing meteorological data, currently supporting the GWO (Ground Weather Observation) dataset provided by the Japan Meteorological Business Support Center ([JMBSC](http://www.jmbsc.or.jp/en/index-e.html)). The dataset was a commercial product in Japanese (see [web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/) for details).
-- GWO dataset preprocesssing is required using [GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD), which creates yearly CSV file at each station. 
-- このリポジトリでは（一財）日本気象業務支援センター([JMBSC](http://www.jmbsc.or.jp/en/index-e.html))が提供する，2021年までのGWO(地上気象観測)データセットを処理するツールを提供しています．詳細は[web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)および[ブログ記事](https://estuarine.jp/2016/05/gwo/)を参照ください．
-この2021年までのGWOデータセットは[GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD)を用いて，各観測点における年別のCSVファイルに変換しておく前処理が必要です．
-- （一財）日本気象業務支援センターから販売されていた，1961年から2015年までのアメダス（AMD）や地上観測データ（GWO）は，購入者限定で[ウェザートーイ](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)が2021年のデータまでサポートしています．2022年以降は気象庁互換形式のみ提供されています．
-- 気象庁公開の気象情報は[whp View](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/whpview/index.html)を用いて閲覧可能です．フリー版でなければCSV形式でのダウンロードも可能です．詳細は下端にまとめます．しかし，2024年7月現在，このダウンロードはできなくなったようです．上記データセット購入者は引き続き，気象庁互換形式のデータをサポートwebからダウンロード可能です．
-- **気象庁互換形式**の値欄には記号が含まれる場合があります．[**値欄の詳細**](https://www.data.jma.go.jp/obd/stats/data/mdrr/man/remark.html)です．
-- データーの2次利用には「気象庁提供」の明示が必要です．
+
+This repository contains tools for processing meteorological data, currently supporting the GWO (Ground Weather Observation) dataset provided by the Japan Meteorological Business Support Center ([JMBSC](http://www.jmbsc.or.jp/en/index-e.html)). The dataset was a commercial product in Japanese (see [web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/) for details).
+
+GWO dataset preprocesssing is required using [GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD), which creates yearly CSV file at each station.
 
 ## GWO dataset
 
@@ -29,14 +25,29 @@ Each file contains meteorological data (see the columns below) from YYYY-01-01 0
  "降水量(0.1mm/h)","ID14"]
 ```
 
-## Install
-Minimum pre-installed packages are `numpy pandas matplotlib jupyterlab`. Only local installation is supported. Move into the directory of the local repository of **metdata** and execute the following. Do not forget the last dot.
+## Installation
+
+### Using conda (recommended)
 
 ```bash
+conda env create -f environment.yml
+conda activate metdata
+```
+
+### Using pip
+
+```bash
+pip install -r requirements.txt
 pip install -e .
 ```
 
-### Extract data by specifying an observatory and period.
+**Note**: The package requires `nkf` (Network Kanji Filter) to be installed on your system:
+- Linux/WSL: `sudo apt install nkf`
+- macOS: `brew install nkf`
+
+## Usage
+
+### Extract data by specifying an observatory and period
 
 ```Python
 from metdata import gwo
@@ -51,7 +62,7 @@ met.df  # pandas.DataFrame
 ```
 
 
-## Plotting
+### Plotting
 
 ```Python
 ## Specify pandas.DataFrame and set an item to be plotted.
@@ -74,6 +85,8 @@ plot_config = gwo.Data1D_PlotConfig(xlim=xlim, ylim=ylim,
 gwo.Plot1D(plot_config, data, window=window,
            center=True).save_plot('data.png', dpi=600)
 ```
+
+## API Reference
 
 ### Class Data1D
 1D scalar (`col_1`) plot or 1D vector `(col_1, col_2)` plot.
@@ -138,12 +151,30 @@ save_vector_plot(filename, magnitude, **kwargs)
 - `**kwargs` (dict) : Transferred to `figure.savefig` in matplotlib
 
 
-## whp View を用いた気象庁公開気象データの取得 (in Japanese)
+---
+
+<details>
+<summary><b>日本語情報 (Japanese Information)</b></summary>
+
+## 概要
+
+- このリポジトリでは（一財）日本気象業務支援センター([JMBSC](http://www.jmbsc.or.jp/en/index-e.html))が提供する，2021年までのGWO(地上気象観測)データセットを処理するツールを提供しています．詳細は[web](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)および[ブログ記事](https://estuarine.jp/2016/05/gwo/)を参照ください．
+この2021年までのGWOデータセットは[GWO-AMD](https://github.com/jsasaki-utokyo/GWO-AMD)を用いて，各観測点における年別のCSVファイルに変換しておく前処理が必要です．
+
+- （一財）日本気象業務支援センターから販売されていた，1961年から2015年までのアメダス（AMD）や地上観測データ（GWO）は，購入者限定で[ウェザートーイ](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/)が2021年のデータまでサポートしています．2022年以降は気象庁互換形式のみ提供されています．
+
+- 気象庁公開の気象情報は[whp View](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/whpview/index.html)を用いて閲覧可能です．フリー版でなければCSV形式でのダウンロードも可能です．詳細は下端にまとめます．しかし，2024年7月現在，このダウンロードはできなくなったようです．上記データセット購入者は引き続き，気象庁互換形式のデータをサポートwebからダウンロード可能です．
+
+- **気象庁互換形式**の値欄には記号が含まれる場合があります．[**値欄の詳細**](https://www.data.jma.go.jp/obd/stats/data/mdrr/man/remark.html)です．
+
+- データーの2次利用には「気象庁提供」の明示が必要です．
+
+## whp View を用いた気象庁公開気象データの取得
 
 [whp View](http://www.roy.hi-ho.ne.jp/ssai/mito_gis/whpview/index.html)を用いて気象庁公開の気象情報が閲覧できます．フリー版でなければCSVのダウンロードも可能です．1度のダウンロードは1測点1年間程度とする必要があります（読み飛ばしエラーが起こりやすい）．．
 気象情報は **地上観測** と **アメダス**，および **高層** の3種類があります．
 
-#### 雲量の注意
+### 雲量の注意
 雲量に `0+` といった表記があります．これを含め，値欄の記号の情報は [気象庁web](https://www.data.jma.go.jp/obd/stats/data/mdrr/man/remark.html)にあります．また，雲量は時別値でも3時間間隔のデータとなっており，欠損値の扱いが要注意です．
 
 ### 地上観測
@@ -169,3 +200,5 @@ save_vector_plot(filename, magnitude, **kwargs)
 
 #### アメダス１０分
 **アメダスタブ** で **観測所** を選択し，**期間** を指定します．ラジオボタンの **１０分** を選択し，デフォルトの主要素が選択された状態で，**取得** ボタンをクリックします．
+
+</details>
