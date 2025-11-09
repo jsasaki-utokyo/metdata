@@ -23,6 +23,22 @@ LOG = logging.getLogger("gwo_to_cf")
 FILL_VALUE = np.float32(-9999.0)
 UTC_UNITS = "seconds since 1970-01-01 00:00:00 UTC"
 CALENDAR = "gregorian"
+RMK_MISSING_CODES = {"0", "1", "2", 0, 1, 2}
+RMK_MAP = {
+    "lhpa": "lhpaRMK",
+    "shpa": "shpaRMK",
+    "kion": "kionRMK",
+    "stem": "stemRMK",
+    "rhum": "rhumRMK",
+    "muki": "mukiRMK",
+    "sped": "spedRMK",
+    "clod": "clodRMK",
+    "tnki": "tnkiRMK",
+    "humd": "humdRMK",
+    "lght": "lghtRMK",
+    "slht": "slhtRMK",
+    "kous": "kousRMK",
+}
 
 
 class RawHourly(gwo.Hourly):
@@ -122,7 +138,18 @@ def load_raw_dataframe(
     df = reader.df_org.copy()
     if df.empty:
         raise RuntimeError("No rows returned for the requested period.")
-    return df
+    return _mask_rmk_values(df)
+
+
+def _mask_rmk_values(df: pd.DataFrame) -> pd.DataFrame:
+    """Force RMK=0/1/2 samples to NaN for every meteorological variable."""
+    masked = df.copy()
+    for value_col, rmk_col in RMK_MAP.items():
+        if value_col not in masked.columns or rmk_col not in masked.columns:
+            continue
+        mask = masked[rmk_col].isin(RMK_MISSING_CODES)
+        masked.loc[mask, value_col] = np.nan
+    return masked
 
 
 def _deg_from_code(series: pd.Series) -> pd.Series:
