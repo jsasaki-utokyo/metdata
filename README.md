@@ -127,6 +127,8 @@ python scripts/gwo_to_cf_netcdf.py \
 
 The script expects hourly CSVs under `$DATA_DIR/met/JMA_DataBase/GWO/Hourly/` (or a custom `--data-dir`) and reports missing values before writing the file.
 
+Note: Calm conditions (`muki=0`) are exported with `wind_from_direction = NaN` because the CF convention treats direction as undefined when speed is zero; `wind_speed` still reports the measured magnitude.
+
 To inspect missing samples inside a generated file, run:
 
 ```bash
