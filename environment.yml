@@ -10,6 +10,7 @@ dependencies:
   - jupyterlab
   - pvlib
   - python-dateutil
+  - netCDF4
   - pip
   - pip:
     - -e .

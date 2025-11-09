@@ -113,6 +113,20 @@ gwo.Plot1D(plot_config, data, window=window,
            center=True).save_plot('data.png', dpi=600)
 ```
 
+### Create CF-compliant NetCDF
+
+Use the helper script under `scripts/` to package a station/date range into a NetCDF file that follows the CF convention:
+
+```bash
+python scripts/gwo_to_cf_netcdf.py \
+  --station Tokyo \
+  --start "2019-01-01 00:00:00" \
+  --end   "2020-01-01 00:00:00" \
+  --output tokyo_2019.nc
+```
+
+The script expects hourly CSVs under `$DATA_DIR/met/JMA_DataBase/GWO/Hourly/` (or a custom `--data-dir`) and reports missing values before writing the file.
+
 ## API Reference
 
 ### Class Data1D

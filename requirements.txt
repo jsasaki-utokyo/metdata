@@ -4,3 +4,4 @@ matplotlib
 jupyterlab
 pvlib
 python-dateutil
+netCDF4
