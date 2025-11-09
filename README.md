@@ -127,6 +127,14 @@ python scripts/gwo_to_cf_netcdf.py \
 
 The script expects hourly CSVs under `$DATA_DIR/met/JMA_DataBase/GWO/Hourly/` (or a custom `--data-dir`) and reports missing values before writing the file.
 
+To inspect missing samples inside a generated file, run:
+
+```bash
+python scripts/check_netcdf_missing.py tokyo_2019.nc --timezone Asia/Tokyo --limit 20
+```
+
+Each reported line lists the timestamp, variable name, stored missing value, and the closest previous/next valid measurements to help with QA.
+
 ## API Reference
 
 ### Class Data1D
