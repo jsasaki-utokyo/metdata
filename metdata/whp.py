@@ -9,8 +9,35 @@ from metdata import gwo
 import numpy as np
 import pandas as pd
 import subprocess
+import platform
+import os
 from pvlib import clearsky, atmosphere, solarposition
 from pvlib.location import Location
+
+def _get_default_whpview_path():
+    """
+    Get default whpView data directory path.
+    On Linux: Uses $DATA_DIR environment variable
+    On other platforms: Uses Windows-style path
+
+    Returns
+    -------
+    str : Default directory path for whpView data
+
+    Raises
+    ------
+    EnvironmentError : If on Linux and $DATA_DIR is not set
+    """
+    if platform.system() == 'Linux':
+        data_dir = os.environ.get('DATA_DIR')
+        if data_dir is None:
+            raise EnvironmentError(
+                "$DATA_DIR environment variable is not set. "
+                "Please set it to your data directory (e.g., export DATA_DIR=/mnt/c/Data)"
+            )
+        return os.path.join(data_dir, 'met/JMA_DataBase/whpView/wwwRoot/data/')
+    else:
+        return '/mnt/d/dat/met/JMA_DataBase/whpView/wwwRoot/data/'
 
 class StationDict:
     '''
@@ -58,19 +85,22 @@ class Whp(gwo.Hourly):
                    "風速(m/s)":"風速(0.1m/s)","風向":"風向(1(NNE)～16(N))","日照時間(h)":"日照時間(0.1時間)",
                    "全天日射量(MJ/㎡)":"全天日射量(0.01MJ/m2/h)","雲量":"雲量(10分比)"}
 
-    def __init__(self, year, stn, data_dir_base='/mnt/d/dat/met/JMA_DataBase/whpView/wwwRoot/data/'):
+    def __init__(self, year, stn, data_dir_base=None):
         '''
         Constructor of class Whp, reading CSV file of f"{dirpath}{year}/{stn}_{year}.csv"
         and creating pandas.DataFrame compatible to GWO data.
         The data cleaning is made based on:
         https://www.data.jma.go.jp/obd/stats/data/mdrr/man/remark.html
-        
+
         Parameters
         ----------
         data_dir_base(str): whpView data directory path, e.g., "/mnt/d/dat/met/JMA_DataBase/whpView/wwwRoot/data/"
+                           If None, uses $DATA_DIR on Linux or default Windows path on other platforms.
         year(str or int): Target year
         stn(str): Target station name
         '''
+        if data_dir_base is None:
+            data_dir_base = _get_default_whpview_path()
         self._year = year
         self._stn = stn
         fi_path = f"{data_dir_base}{self._year}/{self._stn}_{self._year}.csv"
@@ -150,17 +180,29 @@ class Whp(gwo.Hourly):
         '''
         return self._df_org
 
-    def to_csv(self, data_dir_base="/mnt/d/dat/met/JMA_DataBase/GWO/Hourly/", isfpath=False, **kwargs):
+    def to_csv(self, data_dir_base=None, isfpath=False, **kwargs):
         '''
         Save the pandas.DataFrame as CSV file.
-        
+
         Parameters
         ----------
         data_dir_base(str): CSV output directory base path when isfpath=False (default)
-            or CSV output file path when isfpath=True
+            or CSV output file path when isfpath=True.
+            If None, uses $DATA_DIR on Linux or default Windows path on other platforms.
         isfpath(bool): True when data_dir_base is CSV file path
         **kwargs: kwargs transferred to pandas.DataFrame.to_csv()
         '''
+        if data_dir_base is None:
+            if platform.system() == 'Linux':
+                data_dir = os.environ.get('DATA_DIR')
+                if data_dir is None:
+                    raise EnvironmentError(
+                        "$DATA_DIR environment variable is not set. "
+                        "Please set it to your data directory (e.g., export DATA_DIR=/mnt/c/Data)"
+                    )
+                data_dir_base = os.path.join(data_dir, 'met/JMA_DataBase/GWO/Hourly/')
+            else:
+                data_dir_base = "/mnt/d/dat/met/JMA_DataBase/GWO/Hourly/"
         #fo_path = f"{data_dir_base}{self._stn}/{self._stn}{self._year}.csv"
         if isfpath:
             fo_path = f"{data_dir_base}"

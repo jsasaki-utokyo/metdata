@@ -5,7 +5,7 @@
 import sys
 from metdata import gwo
 
-def read_gwo(ymd_ini, ymd_end, stn, dirpath="/mnt/c/dat/met/JMA_DataBase/GWO/Hourly/"):
+def read_gwo(ymd_ini, ymd_end, stn, dirpath=None):
     '''
     Read GWO data
 
@@ -18,14 +18,15 @@ def read_gwo(ymd_ini, ymd_end, stn, dirpath="/mnt/c/dat/met/JMA_DataBase/GWO/Hou
     stn : str
         Station name
     dirpath : str
-        Directory path where the GWO data are stored
+        Directory path where the GWO data are stored.
+        If None, uses $DATA_DIR on Linux or default path on other platforms.
     '''
     datetime_ini = f"{ymd_ini} 00:00:00"
     datetime_end = f"{ymd_end} 00:00:00"
     return gwo.Hourly(datetime_ini=datetime_ini, datetime_end=datetime_end, stn=stn,
                           dirpath=dirpath)
 
-def export_gotm(ymd_ini, ymd_end, stns, dirpath="/mnt/c/dat/met/JMA_DataBase/GWO/Hourly/"):
+def export_gotm(ymd_ini, ymd_end, stns, dirpath=None):
     '''
     Export GWO data to GOTM format input files
 
@@ -38,13 +39,14 @@ def export_gotm(ymd_ini, ymd_end, stns, dirpath="/mnt/c/dat/met/JMA_DataBase/GWO
     stns : list
         List of station names
     dirpath : str
-        Directory path where the GWO data are stored
+        Directory path where the GWO data are stored.
+        If None, uses $DATA_DIR on Linux or default path on other platforms.
 
     Returns
     -------
     None
     '''
-    
+
     for stn in stns:
         gwo_data = read_gwo(ymd_ini, ymd_end, stn=stn, dirpath=dirpath)
         if stn == 'Tokyo':
@@ -56,10 +58,11 @@ def export_gotm(ymd_ini, ymd_end, stns, dirpath="/mnt/c/dat/met/JMA_DataBase/GWO
         gwo.export_gotm_meteo(file, gwo_data.df)
 
 if __name__ == "__main__":
-    dirpath = "/mnt/c/dat/met/JMA_DataBase/GWO/Hourly/"
+    # dirpath is now optional - uses $DATA_DIR on Linux by default
+    # You can also specify a custom path: dirpath = "/custom/path/to/GWO/Hourly/"
     ymd_ini = "2016-01-01"
     ymd_end = "2017-01-01"
     stns = ['Tokyo', 'Chiba', 'Yokohama']
 
-    export_gotm(ymd_ini, ymd_end, stns, dirpath=dirpath)
+    export_gotm(ymd_ini, ymd_end, stns)
 

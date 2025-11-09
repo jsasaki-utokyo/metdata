@@ -24,6 +24,7 @@ import math
 import pandas as pd
 import datetime
 import subprocess
+import platform
 from pandas.tseries.offsets import Hour
 from dateutil.parser import parse
 #import json  # json cannot manipulate datetime
@@ -33,6 +34,31 @@ from matplotlib.dates import date2num, YearLocator, MonthLocator, DayLocator, Da
 from pandas.plotting import register_matplotlib_converters
 #register_matplotlib_converters()
 #get_ipython().run_line_magic('matplotlib', 'inline')
+
+def _get_default_gwo_path():
+    """
+    Get default GWO data directory path.
+    On Linux: Uses $DATA_DIR environment variable
+    On other platforms: Uses Windows-style path
+
+    Returns
+    -------
+    str : Default directory path for GWO data
+
+    Raises
+    ------
+    EnvironmentError : If on Linux and $DATA_DIR is not set
+    """
+    if platform.system() == 'Linux':
+        data_dir = os.environ.get('DATA_DIR')
+        if data_dir is None:
+            raise EnvironmentError(
+                "$DATA_DIR environment variable is not set. "
+                "Please set it to your data directory (e.g., export DATA_DIR=/mnt/c/Data)"
+            )
+        return os.path.join(data_dir, 'met/JMA_DataBase/GWO/')
+    else:
+        return "D:/dat/met/JMA_DataBase/GWO/"
 
 class Stn:
     '''
@@ -247,7 +273,9 @@ class Hourly(Met):
                 "clodRMK","tnkiRMK","humdRMK","lghtRMK","slhtRMK","kousRMK"] 
 
     def __init__(self, datetime_ini = "2014-1-10 15:00:00", datetime_end = "2014-6-1 00:00:00",
-                 stn = "Tokyo", dirpath = "D:/dat/met/JMA_DataBase/GWO/"):
+                 stn = "Tokyo", dirpath = None):
+        if dirpath is None:
+            dirpath = _get_default_gwo_path()
         super().__init__(datetime_ini, datetime_end, stn, dirpath)
         '''
         Constructor for setting parameters for extracting dataset
@@ -659,7 +687,9 @@ class Check(Hourly):
     Find missing values using RMK values; if found, set corresponding values as NaN.
     '''
     def __init__(self, datetime_ini = "2014-1-1 15:00:00", datetime_end = "2014-6-1 00:00:00",
-                 stn = "Tokyo", dirpath = "../GWO/Hourly/"):
+                 stn = "Tokyo", dirpath = None):
+        if dirpath is None:
+            dirpath = os.path.join(_get_default_gwo_path(), 'Hourly/')
         ## Class Check inherits Class Met.
         Met.__init__(self, datetime_ini, datetime_end, stn, dirpath)
         self.names_jp = Hourly.col_names_jp
@@ -697,7 +727,9 @@ class Daily(Hourly):
     注意：全天日射量日別値の単位：1961-1980: 1cal/cm2，1981以降: 0.1MJ/m2
     '''
     def __init__(self, datetime_ini = "2014-1-10 15:00:00", datetime_end = "2014-6-1 00:00:00",
-                 stn = "Tokyo", dirpath = "../../../met/GWO/Daily/"):
+                 stn = "Tokyo", dirpath = None):
+        if dirpath is None:
+            dirpath = os.path.join(_get_default_gwo_path(), 'Daily/')
         super().__init__(datetime_ini, datetime_end, stn, dirpath)
         self.names_jp = ["観測所ID","観測所名","ID1","年","月","日",
                          "平均現地気圧(0.1hPa)","ID2","平均海面気圧(0.1hPa)","ID3",
