@@ -203,6 +203,59 @@ python scripts/interpolate_netcdf.py tokyo_2019.nc --no-alerts
 
 The script reports statistics for each variable, showing how many missing values were filled vs. unfilled due to exceeding the gap threshold.
 
+### Visualize Time Series
+
+Generate comprehensive time series plots from NetCDF files:
+
+```bash
+# Plot entire dataset
+python scripts/plot_netcdf_timeseries.py tokyo_2019.nc
+
+# Plot specific time period
+python scripts/plot_netcdf_timeseries.py tokyo_2019.nc \
+  --start "2019-06-01" --end "2019-08-31"
+
+# Apply 24-hour moving average
+python scripts/plot_netcdf_timeseries.py tokyo_2019.nc --window 24
+
+# Plot every 3 hours (reduce density)
+python scripts/plot_netcdf_timeseries.py tokyo_2019.nc --skip 3
+
+# Custom output directory
+python scripts/plot_netcdf_timeseries.py tokyo_2019.nc --output-dir figures
+```
+
+**Features:**
+- **Multi-panel layout:** Each variable plotted in its own panel with appropriate labels and units
+- **Wind vector display:** Wind components (eastward/northward) automatically combined into vector plot using the metdata package style
+  - All data points plotted by default (no automatic subsampling)
+  - Thin vector lines with minimal arrow heads for clarity
+  - Blue color with transparency (α=0.5)
+  - Y-axis shows wind magnitude scale
+- **Smart formatting:** LaTeX-style units (e.g., m s$^{-1}$, W m$^{-2}$), temperature in °C
+- **Moving average:** Optional smoothing with configurable window size
+- **Data subsampling:** Plot every N-th point to reduce density (applies to all variables including wind)
+- **Time range selection:** Focus on specific periods
+- **High-quality output:** PNG with 300 DPI (configurable), tight bounding box
+
+**Output:**
+- Saved as `PNG/{input_filename}_timeseries.png`
+- PNG directory created automatically if it doesn't exist
+- Each variable in separate panel (tall figure with independent y-axes)
+- Wind vectors show both direction and magnitude clearly
+
+**Variable Labels:**
+The script uses concise, publication-quality labels:
+- T$_{\mathrm{air}}$ (°C) - Air temperature
+- T$_{\mathrm{dew}}$ (°C) - Dew point temperature
+- P$_{\mathrm{sfc}}$ (hPa) - Surface pressure
+- P$_{\mathrm{msl}}$ (hPa) - Mean sea level pressure
+- e (hPa) - Water vapor partial pressure
+- RH (1) - Relative humidity
+- Wind (m s$^{-1}$) - Wind vectors
+- SW$_{\downarrow}$ (W m$^{-2}$) - Downwelling shortwave radiation
+- Precip (kg m$^{-2}$ s$^{-1}$) - Precipitation flux
+
 ## API Reference
 
 ### Class Data1D
