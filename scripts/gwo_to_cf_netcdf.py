@@ -164,28 +164,41 @@ def _mask_rmk_values(df: pd.DataFrame) -> pd.DataFrame:
             zero_mask = rmk_series.isin({"2", 2})
             masked.loc[zero_mask, value_col] = 0.0
 
-    # Wind-specific rule: if direction is unobserved (RMK=2 or 6) but speed RMK is valid,
-    # this indicates calm condition (wind speed = 0).
+    # Wind-specific rules for calm and missing conditions
     if (
         "muki" in masked.columns
         and "mukiRMK" in masked.columns
         and "sped" in masked.columns
         and "spedRMK" in masked.columns
     ):
-        # When direction RMK is 2 or 6 (not observed/calm) but speed RMK is valid (8),
-        # set direction to NaN but keep speed = 0 (calm condition)
-        dir_unobserved = masked["mukiRMK"].isin({"2", "6", 2, 6})
-        speed_valid = masked["spedRMK"].isin({"8", 8})
-        calm_mask = dir_unobserved & speed_valid
-        if calm_mask.any():
-            masked.loc[calm_mask, "muki"] = np.nan
-            masked.loc[calm_mask, "sped"] = 0.0
+        # Rule 1: When muki=0 (direction N/A) with mukiRMK=8 and very low speed,
+        # this indicates calm conditions where direction is undefined.
+        # Set both direction and speed to 0 to indicate calm.
+        # Speed threshold: ≤ 3 units (0.3 m/s after conversion)
+        calm_by_data = (
+            (masked["muki"] == 0)
+            & masked["mukiRMK"].isin({"8", 8})
+            & (masked["sped"] <= 3)
+            & masked["spedRMK"].isin({"8", 8})
+        )
+        if calm_by_data.any():
+            masked.loc[calm_by_data, "sped"] = 0.0
+            # muki=0 will be converted to NaN by _deg_from_code later
 
-        # When both direction and speed are missing (RMK=2 but spedRMK is also missing),
-        # set both to NaN
-        both_missing = dir_unobserved & ~speed_valid
+        # Rule 2: When direction RMK is 2 or 6 (not observed) and speed RMK is also not observed,
+        # set both to NaN (truly missing data)
+        dir_missing = masked["mukiRMK"].isin({"2", "6", 2, 6})
+        speed_missing = masked["spedRMK"].isin({"0", "1", "2", 0, 1, 2})
+        both_missing = dir_missing & speed_missing
         if both_missing.any():
             masked.loc[both_missing, ["muki", "sped"]] = np.nan
+
+        # Rule 3: When direction RMK is 2/6 but speed RMK is valid (8),
+        # this also indicates calm - set speed to 0
+        calm_by_rmk = dir_missing & masked["spedRMK"].isin({"8", 8})
+        if calm_by_rmk.any():
+            masked.loc[calm_by_rmk, "muki"] = 0  # Will become NaN in _deg_from_code
+            masked.loc[calm_by_rmk, "sped"] = 0.0
     return masked
 
 
