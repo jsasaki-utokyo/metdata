@@ -9,7 +9,7 @@ import argparse
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Dict, List, Tuple
 
@@ -48,13 +48,6 @@ RMK_MAP = {
     "slht": "slhtRMK",
     "kous": "kousRMK",
 }
-
-
-class RawHourly(gwo.Hourly):
-    """Hourly reader that skips TEEM-specific unit conversion."""
-
-    def _unit_conversion(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
-        return df
 
 
 @dataclass(frozen=True)
@@ -138,7 +131,7 @@ def ensure_trailing_sep(path: Path) -> str:
 def load_raw_dataframe(
     station: str, start: str, end: str, hourly_dir: Path
 ) -> pd.DataFrame:
-    reader = RawHourly(
+    reader = gwo.Hourly(
         datetime_ini=start,
         datetime_end=end,
         stn=station,
@@ -162,7 +155,15 @@ def _mask_rmk_values(df: pd.DataFrame) -> pd.DataFrame:
         masked.loc[missing_mask, value_col] = np.nan
         if rules.get("rmk2_zero"):
             zero_mask = rmk_series.isin({"2", 2})
-            masked.loc[zero_mask, value_col] = 0.0
+            # Check if there are ANY valid observations (RMK=8)
+            # If not, the instrument doesn't exist - treat all as missing
+            has_valid_obs = rmk_series.isin({"8", 8}).any()
+            if not has_valid_obs:
+                # No valid observations - instrument doesn't exist
+                masked.loc[zero_mask, value_col] = np.nan
+            else:
+                # Has valid observations - RMK=2 is nighttime, set to zero
+                masked.loc[zero_mask, value_col] = 0.0
 
     # Wind-specific rules for calm and missing conditions
     if (
@@ -226,40 +227,53 @@ def _deg_from_code(series: pd.Series) -> pd.Series:
     return mapped
 
 
-def _kelvin_from_tenths_c(series: pd.Series) -> pd.Series:
-    return series.astype(float) / 10.0 + 273.15
+def _no_transform(series: pd.Series) -> pd.Series:
+    """Identity transform - returns series as-is (already converted by gwo.Hourly)."""
+    return series.astype(float)
 
 
-def _pa_from_tenths_hpa(series: pd.Series) -> pd.Series:
-    return series.astype(float) * 10.0
+def _kelvin_from_c(series: pd.Series) -> pd.Series:
+    """Convert °C to K (gwo.Hourly already converted from tenths)."""
+    return series.astype(float) + 273.15
+
+
+def _pa_from_hpa(series: pd.Series) -> pd.Series:
+    """Convert hPa to Pa (gwo.Hourly already converted from tenths)."""
+    return series.astype(float) * 100.0
 
 
 def _vapor_pressure_pa(series: pd.Series) -> pd.Series:
-    return _pa_from_tenths_hpa(series)
+    return _pa_from_hpa(series)
 
 
 def _relative_humidity(series: pd.Series) -> pd.Series:
-    return series.astype(float) / 100.0
+    """gwo.Hourly already converted from % to 0-1."""
+    return series.astype(float)
 
 
 def _wind_speed(series: pd.Series) -> pd.Series:
-    return series.astype(float) / 10.0
+    """gwo.Hourly already converted to m/s."""
+    return series.astype(float)
 
 
 def _cloud_fraction(series: pd.Series) -> pd.Series:
-    return series.astype(float) / 10.0
+    """gwo.Hourly already converted to 0-1."""
+    return series.astype(float)
 
 
-def _seconds_from_tenths_hours(series: pd.Series) -> pd.Series:
-    return (series.astype(float) / 10.0) * 3600.0
+def _seconds_from_hours(series: pd.Series) -> pd.Series:
+    """Convert hours to seconds (gwo.Hourly already converted from tenths)."""
+    return series.astype(float) * 3600.0
 
 
 def _solar_irradiance(series: pd.Series) -> pd.Series:
-    return series.astype(float) * (1.0e4 / 3.6e3)
+    """gwo.Hourly already converted to W/m²."""
+    return series.astype(float)
 
 
 def _precipitation_rate(series: pd.Series) -> pd.Series:
-    return series.astype(float) * (1.0e-4 / 3600.0)
+    """gwo.Hourly already converted to m/s."""
+    return series.astype(float)
 
 
 CF_VARIABLES: Dict[str, CFVariable] = {
@@ -268,28 +282,28 @@ CF_VARIABLES: Dict[str, CFVariable] = {
         standard_name="air_pressure",
         long_name="Station level air pressure",
         units="Pa",
-        transform=_pa_from_tenths_hpa,
+        transform=_pa_from_hpa,
     ),
     "air_pressure_at_sea_level": CFVariable(
         source="shpa",
         standard_name="air_pressure_at_sea_level",
         long_name="Sea level air pressure",
         units="Pa",
-        transform=_pa_from_tenths_hpa,
+        transform=_pa_from_hpa,
     ),
     "air_temperature": CFVariable(
         source="kion",
         standard_name="air_temperature",
         long_name="Dry-bulb air temperature",
         units="K",
-        transform=_kelvin_from_tenths_c,
+        transform=_kelvin_from_c,
     ),
     "dew_point_temperature": CFVariable(
         source="humd",
         standard_name="dew_point_temperature",
         long_name="Dew point temperature",
         units="K",
-        transform=_kelvin_from_tenths_c,
+        transform=_kelvin_from_c,
     ),
     "water_vapor_partial_pressure": CFVariable(
         source="stem",
@@ -310,7 +324,7 @@ CF_VARIABLES: Dict[str, CFVariable] = {
         standard_name="wind_from_direction",
         long_name="Wind from direction",
         units="degree",
-        transform=_deg_from_code,
+        transform=_no_transform,  # Already converted by gwo.Hourly
     ),
     "wind_speed": CFVariable(
         source="sped",
@@ -331,7 +345,7 @@ CF_VARIABLES: Dict[str, CFVariable] = {
         standard_name="duration_of_sunshine",
         long_name="Sunshine duration per interval",
         units="s",
-        transform=_seconds_from_tenths_hours,
+        transform=_seconds_from_hours,
     ),
     "surface_downwelling_shortwave_flux_in_air": CFVariable(
         source="slht",
@@ -416,8 +430,19 @@ def enforce_nighttime_zero(
         (solpos["apparent_elevation"].to_numpy() <= 0),
         index=cf_df.index,
     )
+
+    # Only fill nighttime zeros if there are actual daytime measurements
+    # This prevents filling when the instrument doesn't exist at all
     if night_mask.any():
-        cf_df.loc[night_mask, present] = 0.0
+        for col in present:
+            # Check if there are any valid (non-NaN) daytime values
+            day_mask = ~night_mask
+            has_daytime_data = cf_df.loc[day_mask, col].notna().any()
+
+            # Only fill nighttime with zeros if daytime has measurements
+            if has_daytime_data:
+                cf_df.loc[night_mask, col] = 0.0
+
     return cf_df
 
 
@@ -515,7 +540,7 @@ def write_netcdf(
         nc.institution = "metdata contributors"
         nc.source = "GWO CSV archive"
         nc.history = (
-            f"{datetime.utcnow():%Y-%m-%dT%H:%M:%SZ} - Created by scripts/gwo_to_cf_netcdf.py"
+            f"{datetime.now(timezone.utc):%Y-%m-%dT%H:%M:%SZ} - Created by scripts/gwo_to_cf_netcdf.py"
         )
         nc.station_id = requested["station"]
         nc.time_coverage_start = requested["start"]

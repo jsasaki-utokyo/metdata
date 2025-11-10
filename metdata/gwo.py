@@ -537,13 +537,13 @@ class Hourly(Met):
             rmk_cols = [col for col in df.columns if 'RMK' in col]
             for rmk_col in rmk_cols:
                 ## Find a value_col index corresponding to rmk_col
-                idx = df.columns.get_loc(rmk_col) - 1
-                df.iloc[:,idx].mask(df[rmk_col] == 9999, np.nan, inplace=True)
-                df.loc[:, rmk_col].mask(df[rmk_col] == 9999, 0, inplace=True)
+                value_col = df.columns[df.columns.get_loc(rmk_col) - 1]
+                df[value_col] = df[value_col].mask(df[rmk_col] == 9999, np.nan)
+                df[rmk_col] = df[rmk_col].mask(df[rmk_col] == 9999, 0)
 
-            df.loc[:,'KanID'].replace(9999, dict_for_fill['KanID'], inplace=True)
-            df.loc[:,'Kname'].replace(9999, dict_for_fill['Kname'], inplace=True)
-            df.loc[:,'KanID_1'].replace(9999, dict_for_fill['KanID_1'], inplace=True)
+            df['KanID'] = df['KanID'].replace(9999, dict_for_fill['KanID'])
+            df['Kname'] = df['Kname'].replace(9999, dict_for_fill['Kname'])
+            df['KanID_1'] = df['KanID_1'].replace(9999, dict_for_fill['KanID_1'])
             ## Do not use the following, which does not work. Use slicing above.
             ## df[['KanID']].replace(9999, dict_for_fill['KanID'], inplace=True)
             ## df[['Kname']].replace(9999, dict_for_fill['Kname'], inplace=True)
@@ -591,23 +591,24 @@ class Hourly(Met):
         Returns
         df (pandas.DataFrame) : Updated df
         '''
-        df['lhpa']=df['lhpa']/1.0e1  # [0.1hPa] -> [hPa]  現地気圧  local pressure
-        df['shpa']=df['shpa']/1.0e1  # [0.1hPa] -> [hPa]  海面気圧  sealevel pressure
-        df['kion']=df['kion']/1.0e1  # [0.1degC] -> [degC]  気温  air temperature
-        df['stem']=df['stem']/1.0e1  # [0.1hPa] -> [hPa]  蒸気圧  vapor pressure
-        df['rhum']=df['rhum']/1.0e2  # [%] -> [0-1]  相対湿度  relative humidity
+        df['lhpa']=pd.to_numeric(df['lhpa'], errors='coerce')/1.0e1  # [0.1hPa] -> [hPa]  現地気圧  local pressure
+        df['shpa']=pd.to_numeric(df['shpa'], errors='coerce')/1.0e1  # [0.1hPa] -> [hPa]  海面気圧  sealevel pressure
+        df['kion']=pd.to_numeric(df['kion'], errors='coerce')/1.0e1  # [0.1degC] -> [degC]  気温  air temperature
+        df['stem']=pd.to_numeric(df['stem'], errors='coerce')/1.0e1  # [0.1hPa] -> [hPa]  蒸気圧  vapor pressure
+        df['rhum']=pd.to_numeric(df['rhum'], errors='coerce')/1.0e2  # [%] -> [0-1]  相対湿度  relative humidity
         ## Wind direction [0-16] -> [deg]  0=N/A, 1=NNE, .., 8=S, .., 16=N
         #print(df['muki'])
+        df['muki']=pd.to_numeric(df['muki'], errors='coerce')
         df['muki']=-90.0 - df['muki'] * 22.5
         ## Wind direction [0-360]: Anticolockwise angle with respect to x (W-E) axis.
         df['muki']=df['muki'] % 360.0
-        df['sped']=df['sped']/1.0e1  # [0.1m/s] -> [m/s]  風速  wind speed
-        df['clod']=df['clod']/1.0e1  # [0-10] -> [0-1]  雲量  cloud cover
-        df['humd']=df['humd']/1.0e1  # [0.1degC] -> [degC]  露点温度  dew-point temperature
-        df['lght']=df['lght']/1.0e1  # [0.1h] -> [h]  日照時間  daylight hours
+        df['sped']=pd.to_numeric(df['sped'], errors='coerce')/1.0e1  # [0.1m/s] -> [m/s]  風速  wind speed
+        df['clod']=pd.to_numeric(df['clod'], errors='coerce')/1.0e1  # [0-10] -> [0-1]  雲量  cloud cover
+        df['humd']=pd.to_numeric(df['humd'], errors='coerce')/1.0e1  # [0.1degC] -> [degC]  露点温度  dew-point temperature
+        df['lght']=pd.to_numeric(df['lght'], errors='coerce')/1.0e1  # [0.1h] -> [h]  日照時間  daylight hours
         ## Global horizontal irradiance [0.01MJ/m2/h] -> [J/m2/s] = [W/m2]  短波放射
-        df['slht']=df['slht']*1.0e4/3.6e3
-        df['kous']=df['kous']/(1.0e3 * 3.6e3*10)  # [0.1mm/h] -> [m/s]
+        df['slht']=pd.to_numeric(df['slht'], errors='coerce')*1.0e4/3.6e3
+        df['kous']=pd.to_numeric(df['kous'], errors='coerce')/(1.0e3 * 3.6e3*10)  # [0.1mm/h] -> [m/s]
         ## wind vector (u,v)
         rad = df["muki"].values * 2 * np.pi / 360.0
         rad = rad.astype(float) # This requires for np.cos(rad)

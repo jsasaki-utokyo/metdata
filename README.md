@@ -151,10 +151,14 @@ The script implements intelligent handling of calm and missing wind conditions:
 To inspect missing samples inside a generated NetCDF file:
 
 ```bash
-python scripts/check_netcdf_missing.py tokyo_2019.nc --timezone Asia/Tokyo --limit 20
+# Uses Asia/Tokyo timezone by default
+python scripts/check_netcdf_missing.py tokyo_2019.nc --limit 20
+
+# Or specify a different timezone
+python scripts/check_netcdf_missing.py tokyo_2019.nc --timezone UTC --limit 20
 ```
 
-Each reported line lists the timestamp, variable name, stored missing value, and the closest previous/next valid measurements to help with QA. The RMK code from the original GWO data is also displayed when available.
+Each reported line lists the timestamp (in JST by default), variable name, stored missing value, and the closest previous/next valid measurements to help with QA. The RMK code from the original GWO data is also displayed when available.
 
 ### Interpolate Missing Values
 

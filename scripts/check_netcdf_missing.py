@@ -69,8 +69,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--timezone",
-        default="UTC",
-        help="Timezone for reporting timestamps (e.g., Asia/Tokyo). Default: UTC.",
+        default="Asia/Tokyo",
+        help="Timezone for reporting timestamps (e.g., UTC, Asia/Tokyo). Default: Asia/Tokyo.",
     )
     parser.add_argument(
         "--time-var",
