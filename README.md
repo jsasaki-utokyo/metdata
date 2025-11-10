@@ -127,20 +127,81 @@ python scripts/gwo_to_cf_netcdf.py \
 
 The script expects hourly CSVs under `$DATA_DIR/met/JMA_DataBase/GWO/Hourly/` (or a custom `--data-dir`) and reports missing values before writing the file.
 
-Note: Calm conditions (`muki=0`) are exported with `wind_from_direction = NaN` because the CF convention treats direction as undefined when speed is zero; `wind_speed` still reports the measured magnitude.
+#### Wind Data Handling
 
-Calm hours also force `eastward_wind`/`northward_wind` to `0` so vector components remain consistent with the zero speed.
+The script implements intelligent handling of calm and missing wind conditions:
 
-Nighttime samples automatically set `duration_of_sunshine`, `surface_downwelling_shortwave_flux_in_air`, and other “no phenomenon” indicators (e.g., dry hours for `precipitation_flux`) to `0`, so remaining missing values truly reflect gaps in the underlying data.
-Wind direction RMK=2 (no observation) now forces both `wind_from_direction` and `wind_speed` to `_FillValue`, preventing mismatches between direction and speed availability.
+**Calm Conditions:**
+- When wind direction is N/A (`muki=0`) with valid RMK and very low speed (≤ 0.3 m/s), the data represents calm conditions
+- `wind_from_direction` is set to NaN (direction is undefined when wind is calm)
+- `wind_speed`, `eastward_wind`, and `northward_wind` are all set to `0`
+- This ensures vector components remain consistent with zero speed
 
-To inspect missing samples inside a generated file, run:
+**Missing Data:**
+- When both `mukiRMK` and `spedRMK` indicate missing observations (RMK ∈ {0,1,2}), all wind variables are set to `_FillValue`
+- This prevents mismatches between direction and speed availability
+
+**Nighttime and No-Phenomenon Data:**
+- Nighttime samples automatically set `duration_of_sunshine` and `surface_downwelling_shortwave_flux_in_air` to `0`
+- Other "no phenomenon" indicators (e.g., dry hours for `precipitation_flux`) are also set to `0`
+- Remaining missing values truly reflect gaps in the underlying data
+
+#### Inspecting Missing Values
+
+To inspect missing samples inside a generated NetCDF file:
 
 ```bash
 python scripts/check_netcdf_missing.py tokyo_2019.nc --timezone Asia/Tokyo --limit 20
 ```
 
-Each reported line lists the timestamp, variable name, stored missing value, and the closest previous/next valid measurements to help with QA.
+Each reported line lists the timestamp, variable name, stored missing value, and the closest previous/next valid measurements to help with QA. The RMK code from the original GWO data is also displayed when available.
+
+### Interpolate Missing Values
+
+Use the interpolation script to fill small gaps in NetCDF time series data:
+
+```bash
+# Basic usage: linear interpolation with max gap of 3 (overwrites input)
+python scripts/interpolate_netcdf.py tokyo_2019.nc
+
+# Save to a different file
+python scripts/interpolate_netcdf.py tokyo_2019.nc --output tokyo_2019_interp.nc
+
+# Use cubic interpolation with larger gap threshold
+python scripts/interpolate_netcdf.py tokyo_2019.nc --method cubic --max-gap 5
+
+# Interpolate specific variables only
+python scripts/interpolate_netcdf.py tokyo_2019.nc \
+  --variables eastward_wind northward_wind wind_speed
+
+# Create backup before overwriting
+python scripts/interpolate_netcdf.py tokyo_2019.nc --backup
+```
+
+**Features:**
+- **Smart gap handling:** Only fills gaps up to `--max-gap` length (default: 3)
+- **Multiple methods:** linear, time, cubic, quadratic, spline, pchip, akima, and more
+- **Alerts:** Warns when gaps exceed the maximum threshold
+- **Selective processing:** Can target specific variables or process all
+- **Safe operation:** Optionally creates backup files with `.bak` extension
+- **Metadata tracking:** Records interpolation details in NetCDF history attribute
+
+**Examples:**
+
+```bash
+# Interpolate wind data only, allowing gaps up to 2 hours
+python scripts/interpolate_netcdf.py tokyo_2019.nc \
+  --variables eastward_wind northward_wind \
+  --max-gap 2
+
+# Time-weighted interpolation (better for non-uniform time spacing)
+python scripts/interpolate_netcdf.py tokyo_2019.nc --method time
+
+# Suppress alerts for long gaps
+python scripts/interpolate_netcdf.py tokyo_2019.nc --no-alerts
+```
+
+The script reports statistics for each variable, showing how many missing values were filled vs. unfilled due to exceeding the gap threshold.
 
 ## API Reference
 
