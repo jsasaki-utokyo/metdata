@@ -164,15 +164,28 @@ def _mask_rmk_values(df: pd.DataFrame) -> pd.DataFrame:
             zero_mask = rmk_series.isin({"2", 2})
             masked.loc[zero_mask, value_col] = 0.0
 
-    # Wind-specific rule: if direction is unobserved (RMK=2), treat speed as missing too.
+    # Wind-specific rule: if direction is unobserved (RMK=2 or 6) but speed RMK is valid,
+    # this indicates calm condition (wind speed = 0).
     if (
         "muki" in masked.columns
         and "mukiRMK" in masked.columns
         and "sped" in masked.columns
+        and "spedRMK" in masked.columns
     ):
-        dir_mask = masked["mukiRMK"].isin({"2", 2})
-        if dir_mask.any():
-            masked.loc[dir_mask, ["muki", "sped"]] = np.nan
+        # When direction RMK is 2 or 6 (not observed/calm) but speed RMK is valid (8),
+        # set direction to NaN but keep speed = 0 (calm condition)
+        dir_unobserved = masked["mukiRMK"].isin({"2", "6", 2, 6})
+        speed_valid = masked["spedRMK"].isin({"8", 8})
+        calm_mask = dir_unobserved & speed_valid
+        if calm_mask.any():
+            masked.loc[calm_mask, "muki"] = np.nan
+            masked.loc[calm_mask, "sped"] = 0.0
+
+        # When both direction and speed are missing (RMK=2 but spedRMK is also missing),
+        # set both to NaN
+        both_missing = dir_unobserved & ~speed_valid
+        if both_missing.any():
+            masked.loc[both_missing, ["muki", "sped"]] = np.nan
     return masked
 
 
@@ -342,12 +355,15 @@ def convert_to_cf(df: pd.DataFrame) -> pd.DataFrame:
         eastward = np.full_like(speed, np.nan, dtype=np.float64)
         northward = np.full_like(speed, np.nan, dtype=np.float64)
 
+        # Handle normal conditions: both direction and speed are valid
         valid = np.isfinite(direction_deg) & np.isfinite(speed)
         if valid.any():
             direction_rad = np.deg2rad(direction_deg[valid])
             eastward[valid] = -speed[valid] * np.sin(direction_rad)
             northward[valid] = -speed[valid] * np.cos(direction_rad)
 
+        # Handle calm conditions: direction is NaN but speed is finite and near zero
+        # This occurs when mukiRMK=2 or 6 (calm/not observed) but spedRMK=8 (valid)
         calm_mask = (
             np.isnan(direction_deg)
             & np.isfinite(speed)
