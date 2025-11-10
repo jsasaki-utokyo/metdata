@@ -21,7 +21,14 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.dates import DateFormatter, DayLocator
+from matplotlib.dates import (
+    DateFormatter,
+    DayLocator,
+    MonthLocator,
+    YearLocator,
+    WeekdayLocator,
+    MO,
+)
 from matplotlib.ticker import AutoMinorLocator
 from netCDF4 import Dataset, num2date
 
@@ -331,10 +338,27 @@ def plot_wind_vector(
 
 
 def setup_time_axis(ax: plt.Axes, time_range: pd.DatetimeIndex) -> None:
-    """Setup time axis formatting."""
-    # Date formatter
-    ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
-    ax.xaxis.set_minor_locator(DayLocator(interval=1))
+    """Setup time axis formatting with adaptive tick spacing based on data range."""
+    # Calculate time span in days
+    time_span_days = (time_range[-1] - time_range[0]).days
+
+    # Adaptive locator based on data range
+    if time_span_days > 3650:  # > 10 years: yearly major ticks, quarterly minor
+        ax.xaxis.set_major_locator(YearLocator())
+        ax.xaxis.set_major_formatter(DateFormatter("%Y"))
+        ax.xaxis.set_minor_locator(MonthLocator(bymonth=[1, 4, 7, 10]))
+    elif time_span_days > 730:  # > 2 years: yearly major, monthly minor
+        ax.xaxis.set_major_locator(YearLocator())
+        ax.xaxis.set_major_formatter(DateFormatter("%Y-%m"))
+        ax.xaxis.set_minor_locator(MonthLocator())
+    elif time_span_days > 90:  # > 3 months: monthly major, weekly minor
+        ax.xaxis.set_major_locator(MonthLocator())
+        ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
+        ax.xaxis.set_minor_locator(WeekdayLocator())
+    else:  # <= 3 months: weekly major, daily minor
+        ax.xaxis.set_major_locator(WeekdayLocator(byweekday=MO))
+        ax.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d"))
+        ax.xaxis.set_minor_locator(DayLocator())
 
     # Rotate labels for readability
     plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")

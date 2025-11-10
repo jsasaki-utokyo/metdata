@@ -24,15 +24,8 @@ LOG = logging.getLogger("gwo_to_cf")
 FILL_VALUE = np.float32(default_fillvals["f4"])
 UTC_UNITS = "seconds since 1970-01-01 00:00:00 UTC"
 CALENDAR = "gregorian"
-RMK_RULES = {
-    "default": {"missing": {"0", "1", 0, 1}, "rmk2_zero": False},
-    "clod": {"missing": {"0", "1", "2", 0, 1, 2}, "rmk2_zero": False},
-    "muki": {"missing": {"0", "1", "2", 0, 1, 2}, "rmk2_zero": False},
-    "sped": {"missing": {"0", "1", "2", 0, 1, 2}, "rmk2_zero": False},
-    "lght": {"missing": {"0", "1", 0, 1}, "rmk2_zero": True},
-    "slht": {"missing": {"0", "1", 0, 1}, "rmk2_zero": True},
-    "kous": {"missing": {"0", "1", 0, 1}, "rmk2_zero": True},
-}
+# Variables that should have RMK=2 set to zero for nighttime (after checking for valid obs)
+RMK2_NIGHTTIME_ZERO = {"lght", "slht"}
 RMK_MAP = {
     "lhpa": "lhpaRMK",
     "shpa": "shpaRMK",
@@ -144,28 +137,40 @@ def load_raw_dataframe(
 
 
 def _mask_rmk_values(df: pd.DataFrame) -> pd.DataFrame:
-    """Apply RMK-specific masking and zero-filling rules to the raw dataframe."""
+    """
+    Apply RMK-specific masking and zero-filling rules to the raw dataframe.
+
+    Strategy:
+    1. First, mark ALL RMK=0,1,2 as missing (universal rule)
+    2. Then, apply special treatments (e.g., nighttime zero-fill for solar/sunshine)
+    """
     masked = df.copy()
+
+    # Step 1: Universal rule - mark ALL RMK=0,1,2 as missing
     for value_col, rmk_col in RMK_MAP.items():
         if value_col not in masked.columns or rmk_col not in masked.columns:
             continue
-        rules = RMK_RULES.get(value_col, RMK_RULES["default"])
         rmk_series = masked[rmk_col]
-        missing_mask = rmk_series.isin(rules["missing"])
+        # Mark RMK 0, 1, 2 as missing (universal)
+        missing_mask = rmk_series.isin({"0", "1", "2", 0, 1, 2})
         masked.loc[missing_mask, value_col] = np.nan
-        if rules.get("rmk2_zero"):
-            zero_mask = rmk_series.isin({"2", 2})
-            # Check if there are ANY valid observations (RMK=8)
-            # If not, the instrument doesn't exist - treat all as missing
-            has_valid_obs = rmk_series.isin({"8", 8}).any()
-            if not has_valid_obs:
-                # No valid observations - instrument doesn't exist
-                masked.loc[zero_mask, value_col] = np.nan
-            else:
-                # Has valid observations - RMK=2 is nighttime, set to zero
-                masked.loc[zero_mask, value_col] = 0.0
 
-    # Wind-specific rules for calm and missing conditions
+    # Step 2: Special treatments - nighttime zero fill for solar/sunshine
+    for value_col in RMK2_NIGHTTIME_ZERO:
+        rmk_col = RMK_MAP.get(value_col)
+        if value_col not in masked.columns or rmk_col not in masked.columns:
+            continue
+        rmk_series = masked[rmk_col]
+
+        # Check if there are ANY valid observations (RMK=8)
+        # If not, the instrument doesn't exist - keep all as missing
+        has_valid_obs = rmk_series.isin({"8", 8}).any()
+        if has_valid_obs:
+            # Has valid observations - RMK=2 is nighttime, set to zero
+            zero_mask = rmk_series.isin({"2", 2})
+            masked.loc[zero_mask, value_col] = 0.0
+
+    # Step 3: Wind-specific rules for calm and missing conditions
     if (
         "muki" in masked.columns
         and "mukiRMK" in masked.columns

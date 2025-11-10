@@ -1,5 +1,14 @@
 #!/bin/bash
-station=Yokohama
+
+# Check if station argument is provided
+if [ -z "$1" ]; then
+    echo "Usage: $0 <station>"
+    echo "Example: $0 Tokyo"
+    exit 1
+fi
+
+station=$1
+
 python scripts/gwo_to_cf_netcdf.py \
   --station $station \
   --start "2010-01-01 00:00:00" \
