@@ -79,31 +79,67 @@ For most users, the simplest way to process GWO data into NetCDF format is using
 ### Basic Usage
 
 ```bash
-# Create NetCDF for a specific station
-./create_nc.sh Tokyo
+# Create NetCDF for a specific station (uses defaults: 2010-2023)
+./create_nc.sh --station Tokyo
+
+# Custom date range (auto-generates filename: Tokyo_2015-2019.nc)
+./create_nc.sh --station Tokyo --start 2015-01-01 --end 2020-01-01
+
+# Specify custom output filename
+./create_nc.sh --station Chiba --output my_custom_data.nc
+
+# Full customization
+./create_nc.sh --station Tokyo --start 2018-01-01 --end 2023-01-01 \
+  --output tokyo_custom.nc --max-gap 12 --missing-limit 50 --overwrite
 ```
 
-This single command will:
-1. Extract hourly data from 2010-2023 for the specified station
-2. Create a CF-compliant NetCDF file (`Tokyo_2010-2023.nc`)
-3. Report up to 20 missing values with context
-4. Interpolate gaps up to 24 hours in length
+### Command-Line Options
 
-### Customizing the Script
+**Required:**
+- `--station <name>` - Station name (e.g., Tokyo, Chiba, Yokohama)
 
-Edit `create_nc.sh` to adjust parameters for your needs:
+**Optional:**
+- `--output <file>` - Output NetCDF filename (default: `{station}_{start_year}-{end_year}.nc`)
+- `--start <datetime>` - Start date (default: `2010-01-01 00:00:00`)
+  - Format: `YYYY-MM-DD` or `"YYYY-MM-DD HH:MM:SS"`
+- `--end <datetime>` - End date (default: `2024-01-01 00:00:00`)
+  - Format: `YYYY-MM-DD` or `"YYYY-MM-DD HH:MM:SS"`
+- `--max-gap <hours>` - Maximum gap for interpolation (default: `24`)
+- `--missing-limit <n>` - Number of missing values to report (default: `20`)
+- `--overwrite` - Overwrite existing output file
+- `--skip-check` - Skip missing value check step
+- `--skip-interpolate` - Skip interpolation step
+- `-h, --help` - Show help message
+
+### What the Script Does
+
+The pipeline performs three steps:
+1. **Create NetCDF file** - Extract hourly data and create CF-compliant NetCDF
+2. **Check missing values** - Report missing data with context (can skip with `--skip-check`)
+3. **Interpolate gaps** - Fill small gaps in the data (can skip with `--skip-interpolate`)
+
+**Note:** The script will stop immediately if the output file already exists, unless you specify `--overwrite`
+
+### More Examples
 
 ```bash
-# Change the time period (lines 13-15)
---start "2015-01-01 00:00:00" \
---end   "2020-01-01 00:00:00" \
---output ${station}_2015-2019.nc
+# Quick run with defaults (2010-2023)
+./create_nc.sh --station Tokyo
 
-# Adjust missing value report limit (line 18)
-python scripts/check_netcdf_missing.py ${station}_2015-2019.nc --limit 50
+# Different date formats work
+./create_nc.sh --station Tokyo --start 2015-06-15 --end "2020-12-31 18:00:00"
 
-# Change interpolation gap threshold (line 20)
-python scripts/interpolate_netcdf.py ${station}_2015-2019.nc --max-gap 6
+# Skip optional processing steps
+./create_nc.sh --station Tokyo --skip-check --skip-interpolate
+
+# Create file without interpolation (inspect raw data first)
+./create_nc.sh --station Chiba --start 2020-01-01 --end 2023-01-01 --skip-interpolate
+
+# Allow larger gaps (up to 48 hours)
+./create_nc.sh --station Tokyo --max-gap 48
+
+# Show more missing values in report
+./create_nc.sh --station Tokyo --missing-limit 100
 ```
 
 **Prerequisites:**
