@@ -72,7 +72,47 @@ pip install -e .
 - Linux/WSL: `sudo apt install nkf`
 - macOS: `brew install nkf`
 
-## Usage
+## Quick Start with create_nc.sh
+
+For most users, the simplest way to process GWO data into NetCDF format is using the `create_nc.sh` script. This script automates the entire workflow: creating a CF-compliant NetCDF file, checking for missing values, and interpolating small gaps.
+
+### Basic Usage
+
+```bash
+# Create NetCDF for a specific station
+./create_nc.sh Tokyo
+```
+
+This single command will:
+1. Extract hourly data from 2010-2023 for the specified station
+2. Create a CF-compliant NetCDF file (`Tokyo_2010-2023.nc`)
+3. Report up to 20 missing values with context
+4. Interpolate gaps up to 24 hours in length
+
+### Customizing the Script
+
+Edit `create_nc.sh` to adjust parameters for your needs:
+
+```bash
+# Change the time period (lines 13-15)
+--start "2015-01-01 00:00:00" \
+--end   "2020-01-01 00:00:00" \
+--output ${station}_2015-2019.nc
+
+# Adjust missing value report limit (line 18)
+python scripts/check_netcdf_missing.py ${station}_2015-2019.nc --limit 50
+
+# Change interpolation gap threshold (line 20)
+python scripts/interpolate_netcdf.py ${station}_2015-2019.nc --max-gap 6
+```
+
+**Prerequisites:**
+- GWO CSV files must be prepared in `$DATA_DIR/met/JMA_DataBase/GWO/Hourly/` (see Data Preparation section above)
+- On Linux, set `export DATA_DIR=/path/to/your/data`
+
+**Note:** All data must include the attribution "気象庁提供" (Provided by Japan Meteorological Agency)
+
+## Advanced Usage
 
 ### Extract data by specifying an observatory and period
 
