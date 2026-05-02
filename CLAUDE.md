@@ -2,6 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Conventions
+
+These conventions are inherited from `~/.claude/CLAUDE.md`; they are restated
+here so the project's policies are discoverable from this repo alone.
+
+- **Conversational language is Japanese** (the maintainer is Japanese-speaking).
+  All chat/dialogue replies should be in Japanese unless the user switches.
+- **Written artifacts are English only.** This includes code, comments,
+  docstrings, README and other `*.md` documentation, commit messages, and PR
+  titles/descriptions. Domain values that are inherently Japanese (e.g.
+  `name_jp` station names, `現在天気` weather codes) keep their original
+  language.
+- **Python dependencies are installed via `mamba`/`conda` from
+  `conda-forge`,** not `pip`. Use
+  `mamba install -c conda-forge <pkg>` (or `mamba create -n <env> -c conda-forge ...`).
+  The only allowed `pip` use in this repo is `pip install -e .` for the local
+  editable install of `metdata` itself (see "Installation and Setup" below).
+  Mixing `pip`-installed and `conda`-installed compiled libraries
+  (`numpy` / `netCDF4` / `h5py` / `hdf5`, ...) is a known source of binary
+  incompatibility and must be avoided.
+
 ## Project Overview
 
 **metdata** is a Python library for processing meteorological data from the Japan Meteorological Agency (JMA), specifically:

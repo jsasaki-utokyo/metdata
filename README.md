@@ -150,6 +150,15 @@ The pipeline performs three steps:
 
 ## Advanced Usage
 
+### Station coordinates
+
+```python
+import metdata
+stations = metdata.load_gwo()
+tokyo = metdata.load_gwo("Tokyo")
+print(tokyo.lat, tokyo.lon, tokyo.anemo_height_m)
+```
+
 ### Extract data by specifying an observatory and period
 
 ```Python
