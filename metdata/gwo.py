@@ -78,18 +78,33 @@ class Stn:
     def values(self, name):
         '''
         Get values
-        
+
         Parameters
         ----------
         name(str): Station name in the Kname column
-        
+
         Return
-        (dict): Dictonary with keys of [name, latitude, longitude, altitude, 
+        (dict): Dictonary with keys of [name, latitude, longitude, altitude,
                                         barometer_height, anemometer_height]
+
+        Notes
+        -----
+        ``latitude`` and ``longitude`` are returned in true decimal
+        degrees (``degrees_north`` / ``degrees_east``). The on-disk
+        ``gwo_stn.csv`` stores them in JMA-style ``DD.MMSS`` form
+        (e.g. ``35.2612`` -> 35.4367); the conversion is delegated to
+        :func:`metdata.stations._ddmmss_to_decimal`.
         '''
+        # Imported lazily to avoid a circular import (stations.py has
+        # nothing else from gwo.py, but keeping the import local keeps
+        # the dependency one-way).
+        from metdata.stations import _ddmmss_to_decimal
+
         self.name = name
-        self.latitude = self._df[self._df["Kname"]==self.name]['latitude'].values.item()
-        self.longitude = self._df[self._df["Kname"]==self.name]['longitude'].values.item()
+        raw_lat = self._df[self._df["Kname"]==self.name]['latitude'].values.item()
+        raw_lon = self._df[self._df["Kname"]==self.name]['longitude'].values.item()
+        self.latitude = _ddmmss_to_decimal(raw_lat)
+        self.longitude = _ddmmss_to_decimal(raw_lon)
         self.altitude = self._df[self._df["Kname"]==self.name]['altitude'].values.item()
         self.barometer_height = self._df[self._df["Kname"]==self.name
                                         ]['barometer_height'].values.item()

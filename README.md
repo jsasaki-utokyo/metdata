@@ -160,14 +160,21 @@ print(tokyo.lat, tokyo.lon, tokyo.anemo_height_m)
 ```
 
 The returned DataFrame has columns ``kanid``, ``name_en``, ``name_ja``,
-``lat`` (deg N), ``lon`` (deg E), ``elev_m`` (station ground altitude
-above mean sea level), ``baro_height_m`` (barometer altitude AMSL),
-``anemo_height_m`` (anemometer altitude AMSL), and ``temp_height_m``
-(thermometer height above ground; JMA-standard 1.5 m for all 155
-stations per the JMA observation guide / `ame_master.pdf` section
-(11)). Latitude and longitude are stored in the legacy GWO
-``D.MMSS`` packed format (e.g. ``35.4148`` means 35°41′48″N), kept
-for compatibility with `metdata.gwo.Stn`.
+``lat`` (decimal degrees north), ``lon`` (decimal degrees east),
+``elev_m`` (station ground altitude above mean sea level),
+``baro_height_m`` (barometer altitude AMSL), ``anemo_height_m``
+(anemometer altitude AMSL), and ``temp_height_m`` (thermometer height
+above ground; JMA-standard 1.5 m for all 155 stations per the JMA
+observation guide / `ame_master.pdf` section (11)).
+
+The on-disk ``gwo_stn.csv`` keeps coordinates in the legacy GWO
+``DD.MMSS`` packed format (e.g. ``35.4148`` means 35°41′48″N) so the
+file stays drop-in compatible with the historical archive. Both
+``load_gwo`` and ``gwo.Stn().values()`` decode this on the fly via
+``metdata.stations._ddmmss_to_decimal`` and return true decimal
+degrees, matching the CF-1.x ``degrees_north`` / ``degrees_east``
+units that downstream NetCDF writers (e.g. ``scripts/gwo_to_cf_netcdf.py``)
+already advertise.
 
 ### Extract data by specifying an observatory and period
 

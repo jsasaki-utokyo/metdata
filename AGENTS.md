@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Core code lives under `metdata/`: `gwo.py` handles Ground Weather Observation parsing, `whp.py` exposes Weather-Hub utilities, and `gwo_stn.csv` stores station metadata consumed by both modules. Notebooks and runnable samples (e.g., `gwo_hourly_example.ipynb`, `export_gwo_gotm.sample.py`) sit in `examples/` for exploratory work. Packaging files (`setup.py`, `pyproject.toml`, `setup.cfg`) plus environment specs (`requirements.txt`, `environment.yml`) remain at the repo root so tooling can locate them easily.
+Core code lives under `metdata/`: `stations.py` exposes the public station-table API (`load_gwo`) and the `_ddmmss_to_decimal` coordinate-decoding helper, `gwo.py` handles Ground Weather Observation parsing (its `Stn.values()` also returns decoded decimal degrees), `whp.py` exposes Weather-Hub utilities, and `gwo_stn.csv` stores station metadata consumed by all of them. Coordinates in the CSV are kept in the legacy `DD.MMSS` packed form (e.g. `35.2612` = 35°26′12″) and decoded to decimal degrees at the public-API boundary. Notebooks and runnable samples (e.g., `gwo_hourly_example.ipynb`, `export_gwo_gotm.sample.py`) sit in `examples/` for exploratory work. Packaging files (`setup.py`, `pyproject.toml`, `setup.cfg`) plus environment specs (`requirements.txt`, `environment.yml`) remain at the repo root so tooling can locate them easily.
 
 ## Build, Test, and Development Commands
 Use conda when possible:

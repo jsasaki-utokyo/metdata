@@ -104,7 +104,13 @@ Met (base class)
 
 **Stn** (gwo.py:37-74):
 - Manages station metadata (location, altitude, instrument heights)
-- Reads from `gwo_stn.csv` (note: this file is referenced in code but not present in repo)
+- Reads from `gwo_stn.csv` (bundled inside the package via
+  `importlib.resources`)
+- `Stn.values(name)` returns coordinates in **true decimal degrees**
+  (decoded by `metdata.stations._ddmmss_to_decimal`), even though the
+  on-disk CSV stores them as JMA-style `DD.MMSS` packed values
+  (e.g., `35.2612` -> 35.4367° N). The same decoding is applied by the
+  public `metdata.load_gwo()` accessor — keep them in sync.
 
 **Data structures for plotting** (gwo.py:908-1081):
 - `Data1Ds/Data1D`: Organize scalar or vector time series data

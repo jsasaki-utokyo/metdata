@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import math
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
 import metdata
+from metdata.stations import _ddmmss_to_decimal
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +62,86 @@ def test_load_gwo_by_name_known():
     assert tokyo is not None
     assert tokyo["kanid"] == 662
     assert tokyo["name_ja"] == "東京"
+
+
+# ---------------------------------------------------------------------------
+# Coordinate decoding (DD.MMSS -> decimal degrees)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "ddmmss,expected",
+    [
+        # Yokohama 35°26'12" / 139°39'18"
+        (35.2612, 35 + 26 / 60 + 12 / 3600),
+        (139.3918, 139 + 39 / 60 + 18 / 3600),
+        # Abashiri 44°01'00" / 144°17'00" (trailing zeros elided in CSV)
+        (44.01, 44 + 1 / 60),
+        (144.17, 144 + 17 / 60),
+        # Aburatsu 31°34'30" (one trailing zero elided)
+        (31.343, 31 + 34 / 60 + 30 / 3600),
+        # A negative pseudo-value (no station has one, but the helper
+        # must still respect the sign).
+        (-35.2612, -(35 + 26 / 60 + 12 / 3600)),
+        (0.0, 0.0),
+    ],
+)
+def test_ddmmss_to_decimal_known(ddmmss, expected):
+    assert _ddmmss_to_decimal(ddmmss) == pytest.approx(expected, rel=0, abs=1e-9)
+
+
+def test_ddmmss_to_decimal_rejects_invalid_minutes():
+    # 35.6500 would imply 65 minutes, which is impossible.
+    with pytest.raises(ValueError):
+        _ddmmss_to_decimal(35.6500)
+
+
+def test_ddmmss_to_decimal_rejects_invalid_seconds():
+    # 35.0061 would imply 61 seconds, which is impossible.
+    with pytest.raises(ValueError):
+        _ddmmss_to_decimal(35.0061)
+
+
+def test_ddmmss_to_decimal_passes_through_nan():
+    assert math.isnan(_ddmmss_to_decimal(float("nan")))
+
+
+def test_load_gwo_returns_decimal_degrees_for_yokohama():
+    """Spot-check: Yokohama JMA principal station ≈ 35.4367° N, 139.6550° E."""
+    yokohama = metdata.load_gwo("Yokohama")
+    assert yokohama is not None
+    assert yokohama["lat"] == pytest.approx(35 + 26 / 60 + 12 / 3600, abs=1e-9)
+    assert yokohama["lon"] == pytest.approx(139 + 39 / 60 + 18 / 3600, abs=1e-9)
+
+
+def test_load_gwo_lat_lon_within_japan_bbox():
+    """Every decoded coordinate must land inside Japan's bounding box.
+
+    This is a stronger version of the existing range smoke test: it is
+    only true after DD.MMSS -> decimal-degree conversion. Before the
+    conversion was added some station entries (e.g., 39.4254 for Akita)
+    happened to fall in 20-46 by coincidence; the bounds below are
+    tight enough to fail if conversion regresses.
+    """
+    df = metdata.load_gwo()
+    assert df["lat"].between(20.0, 46.0).all()
+    assert df["lon"].between(122.0, 154.0).all()
+    # Sanity: no station should land at an exact integer degree (which
+    # would happen if a DD.MMSS value with non-zero MM/SS were left
+    # uninterpreted).
+    nontrivial_frac = ((df["lat"] - df["lat"].astype(int)).abs() > 1e-6)
+    assert nontrivial_frac.mean() > 0.95
+
+
+def test_stn_values_returns_decimal_degrees():
+    """``gwo.Stn().values()`` must mirror ``load_gwo`` after the fix."""
+    from metdata import gwo
+
+    catalog = gwo.Stn()
+    rec = catalog.values("Yokohama")
+    yokohama = metdata.load_gwo("Yokohama")
+    assert rec["latitude"] == pytest.approx(float(yokohama["lat"]), abs=1e-9)
+    assert rec["longitude"] == pytest.approx(float(yokohama["lon"]), abs=1e-9)
 
 
 def test_load_gwo_by_name_unknown():
