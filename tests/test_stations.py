@@ -20,12 +20,17 @@ def test_load_gwo_smoke():
     df = metdata.load_gwo()
     # Mandatory columns
     expected = {"kanid", "name_en", "name_ja", "lat", "lon",
-                "elev_m", "baro_height_m", "anemo_height_m"}
+                "elev_m", "baro_height_m", "anemo_height_m",
+                "temp_height_m"}
     assert expected.issubset(df.columns), df.columns
     # Reasonable physical ranges
     assert df["lat"].between(20.0, 46.0).all()
     assert df["lon"].between(122.0, 154.0).all()
     assert df["anemo_height_m"].between(1.0, 200.0).all()
+    # JMA standard thermometer height is 1.5 m above ground for every
+    # 地上気象観測装置 ("官") site; metdata stores this constant for all
+    # 155 stations as documented in gwo_stn.csv's comment line.
+    assert (df["temp_height_m"] == 1.5).all()
     # No duplicate KanIDs
     assert df["kanid"].is_unique
 
@@ -38,6 +43,7 @@ def test_load_gwo_dtypes():
     assert pd.api.types.is_float_dtype(df["elev_m"])
     assert pd.api.types.is_float_dtype(df["baro_height_m"])
     assert pd.api.types.is_float_dtype(df["anemo_height_m"])
+    assert pd.api.types.is_float_dtype(df["temp_height_m"])
 
 
 def test_load_gwo_returns_independent_copy():

@@ -25,7 +25,8 @@ def load_gwo(name: Optional[str] = None) -> pd.DataFrame:
     pandas.DataFrame
         Columns: ``kanid`` (int), ``name_en`` (str), ``name_ja`` (str),
         ``lat`` (float, deg N), ``lon`` (float, deg E), ``elev_m``
-        (float), ``baro_height_m`` (float), ``anemo_height_m`` (float).
+        (float), ``baro_height_m`` (float), ``anemo_height_m`` (float),
+        ``temp_height_m`` (float, JMA-standard 1.5 m for all stations).
     """
     df = pd.read_csv(_GWO_CSV, skiprows=1).rename(
         columns={
@@ -37,10 +38,12 @@ def load_gwo(name: Optional[str] = None) -> pd.DataFrame:
             "altitude":           "elev_m",
             "barometer_height":   "baro_height_m",
             "anemometer_height":  "anemo_height_m",
+            "temperature_height": "temp_height_m",
         }
     )
     df = df[["kanid", "name_en", "name_ja", "lat", "lon",
-             "elev_m", "baro_height_m", "anemo_height_m"]]
+             "elev_m", "baro_height_m", "anemo_height_m",
+             "temp_height_m"]]
     df["kanid"] = df["kanid"].astype(int)
     if name is not None:
         sub = df[df["name_en"] == name]
